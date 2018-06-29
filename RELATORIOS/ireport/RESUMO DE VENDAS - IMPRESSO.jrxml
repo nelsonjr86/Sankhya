@@ -1,0 +1,532 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="relacao_materiais" language="groovy" pageWidth="842" pageHeight="595" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="PERIODO.INI" class="java.sql.Timestamp">
+		<property name="type" value="D"/>
+		<parameterDescription><![CDATA[PERIODO INI.: >=]]></parameterDescription>
+	</parameter>
+	<parameter name="PERIODO.FIN" class="java.sql.Timestamp">
+		<property name="type" value="D"/>
+		<parameterDescription><![CDATA[PERIODO.FIN.: >=]]></parameterDescription>
+	</parameter>
+	<parameter name="GERENCIAL" class="java.lang.String">
+		<property name="type" value="D"/>
+		<parameterDescription><![CDATA[GERENCIAL =]]></parameterDescription>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT /*TOTAL DE VENDAS*/
+ CODEMP,
+	EMPRESA,
+	SUM(A_VISTA) A_VISTA,
+	SUM(A_PRAZO) A_PRAZO,
+	SUM(TOTAL_VENDA) TOTAL_VENDA,
+	SUM(DEVOLUCAO) DEVOLUCAO,
+	SUM(TOTAL_VENDA)+SUM(DEVOLUCAO) RESULTADO,
+	SUM(QUANT_NOTA) QUANT_NOTA,
+ 	SUM(QUANT_PEDIDO) QUANT_PEDIDO,
+	SUM(TOTAL_PEDIDO) TOTAL_PEDIDO
+FROM (
+
+    SELECT
+		 EMP.CODEMP CODEMP,
+        EMP.NOMEFANTASIA EMPRESA,
+        SUM(ITE.VLRUNIT) A_VISTA,
+        0 A_PRAZO,
+        0 TOTAL_VENDA,
+        0 DEVOLUCAO,
+		0 QUANT_NOTA,
+		0 QUANT_PEDIDO,
+		0 TOTAL_PEDIDO
+    FROM TGFITE ITE
+    INNER JOIN TGFCAB CAB ON (CAB.NUNOTA=ITE.NUNOTA)
+    INNER JOIN TSIEMP EMP ON (EMP.CODEMP=CAB.CODEMP)
+	INNER JOIN TGFTPV TPV ON (TPV.CODTIPVENDA=CAB.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDA)
+    INNER JOIN TGFPRO PRD ON (PRD.CODPROD=ITE.CODPROD)
+    WHERE CAB.CODTIPOPER IN (900,901)
+    AND TPV.SUBTIPOVENDA IN (1,7,8)
+    AND CAB.DTNEG BETWEEN $P{PERIODO.INI} AND $P{PERIODO.FIN}
+	AND (
+		($P{GERENCIAL} = 'S' AND CAB.CODVEND <> 59 AND CAB.NUNOTA IN (SELECT NUNOTA FROM TGFFIN WHERE ORIGEM = 'E' AND CODTIPTIT <> 69))
+		OR $P{GERENCIAL}  = 'N'
+	)
+    GROUP BY EMP.NOMEFANTASIA, EMP.CODEMP
+
+    UNION
+
+    SELECT
+		 EMP.CODEMP CODEMP,
+        EMP.NOMEFANTASIA EMPRESA,
+        0 A_VISTA,
+        SUM(ITE.VLRUNIT) A_PRAZO,
+        0 TOTAL_VENDA,
+        0 DEVOLUCAO,
+		0 QUANT_NOTA,
+		0 QUANT_PEDIDO,
+		0 TOTAL_PEDIDO
+    FROM TGFITE ITE
+    INNER JOIN TGFCAB CAB ON (CAB.NUNOTA=ITE.NUNOTA)
+    INNER JOIN TSIEMP EMP ON (EMP.CODEMP=CAB.CODEMP)
+	INNER JOIN TGFTPV TPV ON (TPV.CODTIPVENDA=CAB.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDA)
+    INNER JOIN TGFPRO PRD ON (PRD.CODPROD=ITE.CODPROD)
+    WHERE CAB.CODTIPOPER IN (900,901)
+    AND TPV.SUBTIPOVENDA IN (2,3,5)
+    AND CAB.DTNEG BETWEEN $P{PERIODO.INI} AND $P{PERIODO.FIN}
+	AND (
+		($P{GERENCIAL} = 'S' AND CAB.CODVEND <> 59 AND CAB.NUNOTA IN (SELECT NUNOTA FROM TGFFIN WHERE ORIGEM = 'E' AND CODTIPTIT <> 69))
+		OR $P{GERENCIAL}  = 'N'
+	)
+    GROUP BY EMP.NOMEFANTASIA, EMP.CODEMP
+
+    UNION
+
+    SELECT
+		 EMP.CODEMP CODEMP,
+        EMP.NOMEFANTASIA EMPRESA,
+        0 A_VISTA,
+        0 A_PRAZO,
+        SUM(ITE.VLRUNIT) TOTAL_VENDA,
+        0 DEVOLUCAO,
+		0 QUANT_NOTA,
+		0 QUANT_PEDIDO,
+		0 TOTAL_PEDIDO
+    FROM TGFITE ITE
+    INNER JOIN TGFCAB CAB ON (CAB.NUNOTA=ITE.NUNOTA)
+    INNER JOIN TSIEMP EMP ON (EMP.CODEMP=CAB.CODEMP)
+	INNER JOIN TGFTPV TPV ON (TPV.CODTIPVENDA=CAB.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDA)
+    INNER JOIN TGFPRO PRD ON (PRD.CODPROD=ITE.CODPROD)
+    WHERE CAB.CODTIPOPER IN (900,901)
+    AND TPV.SUBTIPOVENDA IN (1,7,8,2,3,5)
+    AND CAB.DTNEG BETWEEN $P{PERIODO.INI} AND $P{PERIODO.FIN}
+	AND (
+		($P{GERENCIAL} = 'S' AND CAB.CODVEND <> 59 AND CAB.NUNOTA IN (SELECT NUNOTA FROM TGFFIN WHERE ORIGEM = 'E' AND CODTIPTIT <> 69))
+		OR $P{GERENCIAL}  = 'N'
+	)
+    GROUP BY EMP.NOMEFANTASIA, EMP.CODEMP
+
+    UNION
+
+    SELECT
+		 EMP.CODEMP CODEMP,
+        EMP.NOMEFANTASIA EMPRESA,
+        0 A_VISTA,
+        0 A_PRAZO,
+        0 TOTAL_VENDA,
+        SUM(ITE.VLRUNIT)*-1 DEVOLUCAO,
+		0 QUANT_NOTA,
+		0 QUANT_PEDIDO,
+		0 TOTAL_PEDIDO
+    FROM TGFITE ITE
+    INNER JOIN TGFCAB CAB ON (CAB.NUNOTA=ITE.NUNOTA)
+    INNER JOIN TSIEMP EMP ON (EMP.CODEMP=CAB.CODEMP)
+    INNER JOIN TGFPRO PRD ON (PRD.CODPROD=ITE.CODPROD)
+    WHERE CAB.CODTIPOPER IN (1000,1001,1007)
+    AND CAB.DTNEG BETWEEN $P{PERIODO.INI} AND $P{PERIODO.FIN}
+	AND (
+		($P{GERENCIAL} = 'S' AND CAB.CODVEND <> 59 AND CAB.NUNOTA IN (SELECT NUNOTA FROM TGFFIN WHERE ORIGEM = 'E' AND CODTIPTIT <> 69))
+		OR $P{GERENCIAL}  = 'N'
+	)
+    GROUP BY EMP.NOMEFANTASIA, EMP.CODEMP
+
+	UNION
+
+    SELECT
+		 EMP.CODEMP CODEMP,
+        EMP.NOMEFANTASIA EMPRESA,
+        0 A_VISTA,
+        0 A_PRAZO,
+        0 TOTAL_VENDA,
+        0 DEVOLUCAO,
+		COUNT(CAB.NUNOTA) QUANT_NOTA,
+		0 QUANT_PEDIDO,
+		0 TOTAL_PEDIDO
+     FROM TGFITE ITE
+    INNER JOIN TGFCAB CAB ON (CAB.NUNOTA=ITE.NUNOTA)
+    INNER JOIN TSIEMP EMP ON (EMP.CODEMP=CAB.CODEMP)
+    INNER JOIN TGFPRO PRD ON (PRD.CODPROD=ITE.CODPROD)
+    WHERE CAB.CODTIPOPER IN (900)
+    AND CAB.DTNEG BETWEEN $P{PERIODO.INI} AND $P{PERIODO.FIN}
+	AND (
+		($P{GERENCIAL} = 'S' AND CAB.CODVEND <> 59 AND CAB.NUNOTA IN (SELECT NUNOTA FROM TGFFIN WHERE ORIGEM = 'E' AND CODTIPTIT <> 69))
+		OR $P{GERENCIAL}  = 'N'
+	)
+    GROUP BY EMP.NOMEFANTASIA, EMP.CODEMP
+
+
+UNION
+
+    SELECT
+		 EMP.CODEMP CODEMP,
+        EMP.NOMEFANTASIA EMPRESA,
+        0 A_VISTA,
+        0 A_PRAZO,
+        0 TOTAL_VENDA,
+        0 DEVOLUCAO,
+		0 QUANT_NOTA,
+		COUNT(CAB.NUNOTA) QUANT_PEDIDO,
+		0 TOTAL_PEDIDO
+     FROM TGFITE ITE
+    INNER JOIN TGFCAB CAB ON (CAB.NUNOTA=ITE.NUNOTA)
+    INNER JOIN TSIEMP EMP ON (EMP.CODEMP=CAB.CODEMP)
+    INNER JOIN TGFPRO PRD ON (PRD.CODPROD=ITE.CODPROD)
+    WHERE CAB.CODTIPOPER IN (230)
+    AND CAB.DTNEG BETWEEN $P{PERIODO.INI} AND $P{PERIODO.FIN}
+	AND (
+		($P{GERENCIAL} = 'S' AND CAB.CODVEND <> 59 AND CAB.NUNOTA IN (SELECT NUNOTA FROM TGFFIN WHERE ORIGEM = 'E' AND CODTIPTIT <> 69))
+		OR $P{GERENCIAL}  = 'N'
+	)
+    GROUP BY EMP.NOMEFANTASIA, EMP.CODEMP
+UNION
+
+    SELECT
+		 EMP.CODEMP CODEMP,
+        EMP.NOMEFANTASIA EMPRESA,
+        0 A_VISTA,
+        0 A_PRAZO,
+        0 TOTAL_VENDA,
+        0 DEVOLUCAO,
+		0 QUANT_NOTA,
+		0 QUANT_PEDIDO,
+		SUM(ITE.VLRUNIT) TOTAL_PEDIDO
+     FROM TGFITE ITE
+    INNER JOIN TGFCAB CAB ON (CAB.NUNOTA=ITE.NUNOTA)
+    INNER JOIN TSIEMP EMP ON (EMP.CODEMP=CAB.CODEMP)
+    INNER JOIN TGFPRO PRD ON (PRD.CODPROD=ITE.CODPROD)
+    WHERE CAB.CODTIPOPER IN (230)
+    AND CAB.DTNEG BETWEEN $P{PERIODO.INI} AND $P{PERIODO.FIN}
+	AND (
+		($P{GERENCIAL} = 'S' AND CAB.CODVEND <> 59 AND CAB.NUNOTA IN (SELECT NUNOTA FROM TGFFIN WHERE ORIGEM = 'E' AND CODTIPTIT <> 69))
+		OR $P{GERENCIAL}  = 'N'
+	)
+    GROUP BY EMP.NOMEFANTASIA, EMP.CODEMP
+
+
+) SUB
+GROUP BY EMPRESA, CODEMP
+ORDER BY CODEMP]]>
+	</queryString>
+	<field name="CODEMP" class="java.lang.Short"/>
+	<field name="EMPRESA" class="java.lang.String"/>
+	<field name="A_VISTA" class="java.lang.Double"/>
+	<field name="A_PRAZO" class="java.lang.Double"/>
+	<field name="TOTAL_VENDA" class="java.lang.Double"/>
+	<field name="DEVOLUCAO" class="java.lang.Double"/>
+	<field name="RESULTADO" class="java.lang.Double"/>
+	<field name="QUANT_NOTA" class="java.lang.Integer"/>
+	<field name="QUANT_PEDIDO" class="java.lang.Integer"/>
+	<field name="TOTAL_PEDIDO" class="java.lang.Double"/>
+	<variable name="A_VISTA_1" class="java.lang.Double" resetType="Column" calculation="Sum">
+		<variableExpression><![CDATA[$F{A_VISTA}]]></variableExpression>
+		<initialValueExpression><![CDATA[]]></initialValueExpression>
+	</variable>
+	<variable name="A_PRAZO_1" class="java.lang.Double" resetType="Column" calculation="Sum">
+		<variableExpression><![CDATA[$F{A_PRAZO}]]></variableExpression>
+		<initialValueExpression><![CDATA[]]></initialValueExpression>
+	</variable>
+	<variable name="TOTAL_VENDA_1" class="java.lang.Double" resetType="Column" calculation="Sum">
+		<variableExpression><![CDATA[$F{TOTAL_VENDA}]]></variableExpression>
+		<initialValueExpression><![CDATA[]]></initialValueExpression>
+	</variable>
+	<variable name="DEVOLUCAO_1" class="java.lang.Double" resetType="Column" calculation="Sum">
+		<variableExpression><![CDATA[$F{DEVOLUCAO}]]></variableExpression>
+		<initialValueExpression><![CDATA[]]></initialValueExpression>
+	</variable>
+	<variable name="QUANT_NOTA_1" class="java.lang.Integer" resetType="Column" calculation="Sum">
+		<variableExpression><![CDATA[$F{QUANT_NOTA}]]></variableExpression>
+		<initialValueExpression><![CDATA[]]></initialValueExpression>
+	</variable>
+	<variable name="RESULTADO_1" class="java.lang.Double" resetType="Column" calculation="Sum">
+		<variableExpression><![CDATA[$F{RESULTADO}]]></variableExpression>
+		<initialValueExpression><![CDATA[]]></initialValueExpression>
+	</variable>
+	<variable name="QUANT_PEDIDO_1" class="java.lang.Integer" resetType="Column" calculation="Sum">
+		<variableExpression><![CDATA[$F{QUANT_PEDIDO}]]></variableExpression>
+		<initialValueExpression><![CDATA[]]></initialValueExpression>
+	</variable>
+	<variable name="TOTAL_PEDIDO_1" class="java.lang.Double" resetType="Column" calculation="Sum">
+		<variableExpression><![CDATA[$F{TOTAL_PEDIDO}]]></variableExpression>
+		<initialValueExpression><![CDATA[]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<pageHeader>
+		<band height="48">
+			<image>
+				<reportElement key="image-1" x="7" y="2" width="84" height="40"/>
+				<imageExpression class="java.lang.String"><![CDATA["http://192.168.100.41:8180/mge/image/logocliente/logo.png"]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement x="119" y="2" width="334" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="13"/>
+				</textElement>
+				<text><![CDATA[Vendas por Empresa]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="528" y="0" width="11" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="455" y="0" width="73" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Right" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Pág.:]]></text>
+			</staticText>
+			<textField evaluationTime="Report" pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="544" y="0" width="11" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="539" y="0" width="5" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[/]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="119" y="22" width="238" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="12" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="498" y="22" width="56" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$P{PERIODO.FIN}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="428" y="22" width="53" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$P{PERIODO.INI}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="481" y="22" width="17" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[A]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="377" y="22" width="51" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PERIODO]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="20">
+			<staticText>
+				<reportElement mode="Transparent" x="522" y="0" width="85" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[RESULTADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="275" y="0" width="88" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[TOTAL_VENDA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="0" width="91" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[EMPRESA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="92" y="0" width="89" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[A_VISTA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="363" y="0" width="77" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[DEVOLUÇÃO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="181" y="0" width="94" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[A_PRAZO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="444" y="0" width="71" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[QUANT_NOTA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="615" y="0" width="89" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[QUANT_PEDIDO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="710" y="0" width="86" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[TOTAL_PEDIDO]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="19">
+			<line>
+				<reportElement x="-1" y="17" width="803" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineColor="#333333"/>
+				</graphicElement>
+			</line>
+			<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="522" y="2" width="85" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{RESULTADO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="363" y="2" width="77" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{DEVOLUCAO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="275" y="0" width="88" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{TOTAL_VENDA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="92" y="2" width="89" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{A_VISTA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="0" y="2" width="91" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{EMPRESA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="181" y="0" width="94" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{A_PRAZO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="444" y="2" width="71" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$F{QUANT_NOTA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="615" y="0" width="89" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$F{QUANT_PEDIDO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="710" y="0" width="86" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{TOTAL_PEDIDO}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band height="16">
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="92" y="3" width="89" height="13"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$V{A_VISTA_1}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="181" y="3" width="94" height="13"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$V{A_PRAZO_1}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="275" y="3" width="93" height="13"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$V{TOTAL_VENDA_1}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="363" y="3" width="77" height="13"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$V{DEVOLUCAO_1}]]></textFieldExpression>
+			</textField>
+			<textField pattern="">
+				<reportElement x="444" y="3" width="71" height="13"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{QUANT_NOTA_1}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="522" y="3" width="85" height="13"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$V{RESULTADO_1}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement x="615" y="3" width="89" height="13"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{QUANT_PEDIDO_1}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="710" y="3" width="86" height="13"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$V{TOTAL_PEDIDO_1}]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnFooter>
+</jasperReport>
