@@ -68,7 +68,7 @@ AND (
 AND (( CASE WHEN FIN.RECDESP <> 0 THEN 'Sim' ELSE 'Não' END = 'Sim'))
 
 
-ORDER BY "DescTipTítulo", "Tipo_de_Movimento"]]>
+ORDER BY "DescTipTítulo", "Tipo_de_Movimento", "Nro_Nota"]]>
 	</queryString>
 	<field name="EMPRESA" class="java.lang.String"/>
 	<field name="DescTipTitulo" class="java.lang.String"/>
