@@ -3,7 +3,7 @@ SELECT OBJ.NAME
        SYSCOMMENTS COM 
  WHERE COM.ID=OBJ.ID 
    AND OBJ.XTYPE='TR' 
-   AND COM.TEXT LIKE '%ESTOQUE INSUFICIENTE!%'
+   AND COM.TEXT LIKE '%A Qtd. Saída não pode ser maior que a Qtd. Entrada%'
 
 SELECT *
 FROM TGFITE
