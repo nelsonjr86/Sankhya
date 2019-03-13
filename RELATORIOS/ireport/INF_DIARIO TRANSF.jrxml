@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Exceção de compras" language="groovy" pageWidth="595" pageHeight="842" columnWidth="535" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<style name="Title" forecolor="#FFFFFF" fontName="Arial" fontSize="26" isBold="true" pdfFontName="Helvetica-Bold"/>
+	<style name="SubTitle" forecolor="#666666" fontName="Arial" fontSize="18"/>
+	<style name="Column header" forecolor="#666666" fontName="Arial" fontSize="12" isBold="true"/>
+	<style name="Detail" fontName="Arial" fontSize="12"/>
+	<parameter name="DTINI" class="java.util.Date" isForPrompting="false"/>
+	<parameter name="DTFIN" class="java.util.Date" isForPrompting="false"/>
+	<queryString>
+		<![CDATA[SELECT DISTINCT
+
+CAB.CODEMP,
+CAB.CODEMP AS 'LOJA_ORIGEM',
+EMP.NOMEFANTASIA,
+     CONVERT(DATE,ISNULL($P{DTINI},DATEADD(DAY,-8,GETDATE()))) AS 'DATAINI'
+     , CONVERT(DATE,ISNULL($P{DTFIN},DATEADD(DAY,-1,GETDATE()))) AS 'DATAFIN',
+CASE
+	WHEN 1 =  1 AND CAB.CODPARC = 6055 THEN 1
+    WHEN 2 =  2 AND CAB.CODPARC = 6056 THEN 2
+	WHEN 3 =  3 AND CAB.CODPARC = 6057 THEN 3
+	WHEN 4 =  4 AND CAB.CODPARC = 6058 THEN 4
+	WHEN 6 =  6 AND CAB.CODPARC = 6060 THEN 6
+	WHEN 7 =  7 AND CAB.CODPARC = 6061 THEN 7
+	WHEN 8 =  8 AND CAB.CODPARC = 6062 THEN 8
+	WHEN 9 =  9 AND CAB.CODPARC = 6063 THEN 9
+	WHEN 11 =  11 AND CAB.CODPARC = 6064 THEN 11
+	WHEN 12 =  12 AND CAB.CODPARC = 6065 THEN 12
+
+END AS 'lOJA_DESTINO',
+
+PRO.REFERENCIA, PRO.DESCRPROD AS 'DESCRICAO', ITE.QTDNEG AS 'QUANTIDADE', CAB.NUMNOTA AS 'NOTA',
+SANKHYA.SNK_PRECO(0,ITE.CODPROD)+(SANKHYA.SNK_PRECO(0,ITE.CODPROD)*0.33) AS 'PRECO_MINIMO_VENDA'
+
+FROM TGFITE ITE INNER JOIN TGFCAB CAB ON (ITE.NUNOTA=CAB.NUNOTA)
+				INNER JOIN TGFPRO PRO ON (PRO.CODPROD=ITE.CODPROD)
+				INNER JOIN TGFPAR PAR ON (CAB.CODPARC = PAR.CODPARC)
+				INNER JOIN TSIEMP EMP ON (CAB.CODEMP = EMP.CODEMP)
+
+AND CAB.TIPMOV = 'V'
+--AND DTENTSAI BETWEEN '01/03/2019' AND GETDATE()
+AND CONVERT(DATE,ISNULL(CAB.DTENTSAI,CAB.DTNEG)) BETWEEN CONVERT(DATE,ISNULL($P{DTINI},DATEADD(DAY,-8,GETDATE()))) AND CONVERT(DATE,ISNULL($P{DTFIN},DATEADD(DAY,-1,GETDATE())))
+
+AND CAB.CODPARC BETWEEN 6055 AND 6065
+AND CAB.CODTIPOPER IN (908)
+AND CAB.PENDENTE NOT IN ('P')
+AND CAB.STATUSNOTA = 'L'
+
+ORDER BY LOJA_ORIGEM,LOJA_DESTINO, REFERENCIA ASC]]>
+	</queryString>
+	<field name="CODEMP" class="java.lang.Short"/>
+	<field name="LOJA_ORIGEM" class="java.lang.Short"/>
+	<field name="NOMEFANTASIA" class="java.lang.String"/>
+	<field name="DATAINI" class="java.sql.Date"/>
+	<field name="DATAFIN" class="java.sql.Date"/>
+	<field name="lOJA_DESTINO" class="java.lang.Integer"/>
+	<field name="REFERENCIA" class="java.lang.String"/>
+	<field name="DESCRICAO" class="java.lang.String"/>
+	<field name="QUANTIDADE" class="java.lang.Double"/>
+	<field name="NOTA" class="java.lang.Integer"/>
+	<field name="PRECO_MINIMO_VENDA" class="java.lang.Double"/>
+	<sortField name="CODEMP"/>
+	<sortField name="REFERENCIA"/>
+	<group name="CODEMP" isStartNewPage="true">
+		<groupExpression><![CDATA[$F{CODEMP}]]></groupExpression>
+		<groupHeader>
+			<band height="95">
+				<textField>
+					<reportElement style="SubTitle" x="41" y="33" width="509" height="24" forecolor="#333333"/>
+					<textElement>
+						<font isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{CODEMP}+" "+$F{NOMEFANTASIA}]]></textFieldExpression>
+				</textField>
+				<rectangle>
+					<reportElement mode="Opaque" x="0" y="33" width="36" height="24" forecolor="#CCCCCC" backcolor="#CCCCCC"/>
+				</rectangle>
+				<staticText>
+					<reportElement style="Title" x="0" y="0" width="550" height="33" forecolor="#000000"/>
+					<textElement verticalAlignment="Middle"/>
+					<text><![CDATA[INFORME DIARIO TRANSFERENCIA]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="50" y="78" width="47" height="17"/>
+					<box rightPadding="2"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<text><![CDATA[DESTINO]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="0" y="78" width="50" height="17"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<text><![CDATA[ORIGEM]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="96" y="78" width="90" height="17"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Referência]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="348" y="78" width="51" height="17"/>
+					<box rightPadding="2"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<text><![CDATA[QUANTIDADE]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="400" y="78" width="80" height="17"/>
+					<box rightPadding="2"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<text><![CDATA[PRECO_MINIMO_VENDA]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="186" y="78" width="162" height="17"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Produto]]></text>
+				</staticText>
+				<textField pattern="dd/MM/yyyy">
+					<reportElement x="257" y="58" width="55" height="20"/>
+					<box leftPadding="2" rightPadding="0"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.util.Date"><![CDATA[$F{DATAFIN}]]></textFieldExpression>
+				</textField>
+				<textField pattern="dd/MM/yyyy">
+					<reportElement x="185" y="58" width="52" height="20"/>
+					<box rightPadding="2"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.util.Date"><![CDATA[$F{DATAINI}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="238" y="58" width="19" height="20"/>
+					<textElement verticalAlignment="Middle">
+						<font size="10" isBold="true"/>
+					</textElement>
+					<text><![CDATA[ a]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="481" y="78" width="73" height="17"/>
+					<box rightPadding="2"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<text><![CDATA[NOTA]]></text>
+				</staticText>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band/>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20">
+			<printWhenExpression><![CDATA[]]></printWhenExpression>
+			<line>
+				<reportElement positionType="FixRelativeToBottom" x="0" y="17" width="555" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineColor="#999999"/>
+				</graphicElement>
+			</line>
+			<textField>
+				<reportElement style="Detail" x="0" y="0" width="50" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Short"><![CDATA[$F{LOJA_ORIGEM}]]></textFieldExpression>
+			</textField>
+			<textField pattern="">
+				<reportElement x="50" y="0" width="46" height="14"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$F{lOJA_DESTINO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="">
+				<reportElement x="349" y="0" width="51" height="14"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{QUANTIDADE}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="Detail" x="96" y="0" width="90" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{REFERENCIA}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="186" y="0" width="162" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRICAO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="401" y="0" width="80" height="14"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{PRECO_MINIMO_VENDA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0">
+				<reportElement x="482" y="0" width="73" height="14"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$F{NOTA}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="18">
+			<line>
+				<reportElement positionType="FixRelativeToBottom" x="1" y="17" width="555" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineColor="#999999"/>
+				</graphicElement>
+			</line>
+			<textField>
+				<reportElement style="Detail" x="1" y="0" width="50" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Short"><![CDATA[$F{LOJA_ORIGEM}]]></textFieldExpression>
+			</textField>
+			<textField pattern="">
+				<reportElement x="51" y="0" width="46" height="14"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$F{lOJA_DESTINO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="401" y="0" width="80" height="14"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{PRECO_MINIMO_VENDA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="">
+				<reportElement x="350" y="0" width="51" height="14"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{QUANTIDADE}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="Detail" x="97" y="0" width="90" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{REFERENCIA}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="187" y="0" width="162" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRICAO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0">
+				<reportElement x="483" y="0" width="73" height="14"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$F{NOTA}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="20" splitType="Stretch">
+			<textField>
+				<reportElement style="Column header" x="434" y="0" width="80" height="20"/>
+				<textElement textAlignment="Right">
+					<font size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Page "+$V{PAGE_NUMBER}+" of"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement style="Column header" x="514" y="0" width="40" height="20"/>
+				<textElement>
+					<font size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<textField pattern="EEEEE dd MMMMM yyyy">
+				<reportElement style="Column header" x="1" y="0" width="197" height="20"/>
+				<textElement>
+					<font size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="198" y="0" width="236" height="20"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Exceção de compras" language="groovy" pageWidth="595" pageHeight="842" columnWidth="535" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<style name="Title" forecolor="#FFFFFF" fontName="Arial" fontSize="26" isBold="true" pdfFontName="Helvetica-Bold"/>
+	<style name="SubTitle" forecolor="#666666" fontName="Arial" fontSize="18"/>
+	<style name="Column header" forecolor="#666666" fontName="Arial" fontSize="12" isBold="true"/>
+	<style name="Detail" fontName="Arial" fontSize="12"/>
+	<parameter name="CODEMP" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TSIEMP"/>
+		<parameterDescription><![CDATA[Loja]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="GRUPO" class="java.lang.String">
+		<parameterDescription><![CDATA[Grupo]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DTINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Inicial]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DTFIN" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Final]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[WITH X AS (
+SELECT P.REFERENCIA
+	 , P.DESCRPROD
+	 , PAR.CODPARC
+	 , SUBSTRING(PAR.NOMEPARC,1,15) AS RAZAOSOCIAL
+	 , ISNULL(C.DTENTSAI,C.DTNEG) AS DT
+	 , I.QTDNEG
+	 , I.VLRUNIT
+	 , I.CODPROD
+	 , E.CODEMP
+	 , E.NOMEFANTASIA
+	 , C.NUMNOTA
+  FROM TGFCAB C INNER JOIN TGFITE I ON C.NUNOTA = I.NUNOTA
+                INNER JOIN TGFPRO P ON I.CODPROD = P.CODPROD
+				INNER JOIN TGFPAR PAR ON C.CODPARC = PAR.CODPARC
+				INNER JOIN TSIEMP E ON C.CODEMP = E.CODEMP
+ WHERE C.TIPMOV = 'C'
+   AND C.STATUSNOTA = 'L'
+   AND C.CODTIPOPER <> 717
+   AND P.USOPROD = 'R'
+   AND CONVERT(DATE,ISNULL(C.DTENTSAI,C.DTNEG)) BETWEEN CONVERT(DATE,ISNULL($P{DTINI},DATEADD(DAY,-1,GETDATE()))) AND CONVERT(DATE,ISNULL($P{DTFIN},DATEADD(DAY,-1,GETDATE())))
+   AND C.CODEMP = ISNULL($P{CODEMP},C.CODEMP)
+   AND (P.REFERENCIA LIKE $P{GRUPO}+'%' OR $P{GRUPO} IS NULL)
+)
+
+SELECT CODEMP
+     , NOMEFANTASIA
+     , REFERENCIA
+     , DESCRPROD
+	 , CODPARC
+	 , RAZAOSOCIAL
+	 , DT
+	 , QTDNEG
+	 , VLRUNIT
+	 , COMPRA_ANT
+	 , CASE WHEN COMPRA_ANT > 0 THEN ROUND(-100+(VLRUNIT/COMPRA_ANT)*100,2) ELSE 0 END PERC
+     , CONVERT(DATE,ISNULL($P{DTINI},DATEADD(DAY,-1,GETDATE()))) DATAINI
+     , CONVERT(DATE,ISNULL($P{DTFIN},DATEADD(DAY,-1,GETDATE()))) DATAFIN
+     , NUMNOTA
+     , FORN_ANT
+  FROM (
+	SELECT *
+		 , (SELECT TOP 1 I.VLRUNIT FROM TGFCAB C INNER JOIN TGFITE I ON C.NUNOTA = I.NUNOTA WHERE I.CODPROD = X.CODPROD AND ISNULL(C.DTENTSAI,C.DTNEG) < X.DT AND C.TIPMOV = 'C' AND C.STATUSNOTA = 'L' AND C.CODEMP = X.CODEMP AND C.CODTIPOPER <> 717 ORDER BY ISNULL(C.DTENTSAI,C.DTNEG) DESC) AS COMPRA_ANT
+		 , (SELECT TOP 1 C.CODPARC FROM TGFCAB C INNER JOIN TGFITE I ON C.NUNOTA = I.NUNOTA WHERE I.CODPROD = X.CODPROD AND ISNULL(C.DTENTSAI,C.DTNEG) < X.DT AND C.TIPMOV = 'C' AND C.STATUSNOTA = 'L' AND C.CODEMP = X.CODEMP AND C.CODTIPOPER <> 717 ORDER BY ISNULL(C.DTENTSAI,C.DTNEG) DESC) AS FORN_ANT
+	  FROM X
+	) Z]]>
+	</queryString>
+	<field name="CODEMP" class="java.lang.Integer"/>
+	<field name="NOMEFANTASIA" class="java.lang.String"/>
+	<field name="REFERENCIA" class="java.lang.String"/>
+	<field name="DESCRPROD" class="java.lang.String"/>
+	<field name="CODPARC" class="java.lang.Integer"/>
+	<field name="RAZAOSOCIAL" class="java.lang.String"/>
+	<field name="DT" class="java.sql.Timestamp"/>
+	<field name="QTDNEG" class="java.lang.Double"/>
+	<field name="VLRUNIT" class="java.lang.Double"/>
+	<field name="COMPRA_ANT" class="java.lang.Double"/>
+	<field name="PERC" class="java.lang.Double"/>
+	<field name="DATAINI" class="java.sql.Timestamp"/>
+	<field name="DATAFIN" class="java.sql.Timestamp"/>
+	<field name="NUMNOTA" class="java.lang.Integer"/>
+	<field name="FORN_ANT" class="java.lang.Integer"/>
+	<sortField name="CODEMP"/>
+	<sortField name="REFERENCIA"/>
+	<group name="CODEMP" isStartNewPage="true">
+		<groupExpression><![CDATA[$F{CODEMP}]]></groupExpression>
+		<groupHeader>
+			<band height="95">
+				<textField>
+					<reportElement style="SubTitle" x="41" y="33" width="509" height="24" forecolor="#333333"/>
+					<textElement>
+						<font isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{CODEMP}+" "+$F{NOMEFANTASIA}]]></textFieldExpression>
+				</textField>
+				<rectangle>
+					<reportElement mode="Opaque" x="0" y="33" width="36" height="24" forecolor="#CCCCCC" backcolor="#CCCCCC"/>
+				</rectangle>
+				<staticText>
+					<reportElement style="Column header" x="0" y="80" width="62" height="15" forecolor="#000000"/>
+					<box>
+						<bottomPen lineWidth="0.5"/>
+					</box>
+					<textElement verticalAlignment="Bottom">
+						<font size="7"/>
+					</textElement>
+					<text><![CDATA[PRODUTO]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="Column header" x="62" y="80" width="110" height="15" forecolor="#000000"/>
+					<box>
+						<bottomPen lineWidth="0.5"/>
+					</box>
+					<textElement verticalAlignment="Bottom">
+						<font size="7"/>
+					</textElement>
+					<text><![CDATA[DESCRIÇÃO]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="Column header" x="172" y="80" width="32" height="15" forecolor="#000000"/>
+					<box>
+						<bottomPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Bottom">
+						<font size="7"/>
+					</textElement>
+					<text><![CDATA[FORNEC]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="Column header" x="204" y="80" width="72" height="15" forecolor="#000000"/>
+					<box>
+						<bottomPen lineWidth="0.5"/>
+					</box>
+					<textElement verticalAlignment="Bottom">
+						<font size="7"/>
+					</textElement>
+					<text><![CDATA[NOME]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="Column header" x="350" y="80" width="50" height="15" forecolor="#000000"/>
+					<box>
+						<bottomPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Bottom">
+						<font size="7"/>
+					</textElement>
+					<text><![CDATA[DATA]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="Column header" x="400" y="80" width="37" height="15" forecolor="#000000"/>
+					<box>
+						<bottomPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Bottom">
+						<font size="7"/>
+					</textElement>
+					<text><![CDATA[QUANT.]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="Column header" x="437" y="80" width="40" height="15" forecolor="#000000"/>
+					<box>
+						<bottomPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Right" verticalAlignment="Bottom">
+						<font size="7"/>
+					</textElement>
+					<text><![CDATA[VLR. UNIT]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="Column header" x="477" y="80" width="40" height="15" forecolor="#000000"/>
+					<box>
+						<bottomPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Right" verticalAlignment="Bottom">
+						<font size="7"/>
+					</textElement>
+					<text><![CDATA[VLR. ANT]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="Column header" x="516" y="80" width="37" height="15" forecolor="#000000"/>
+					<box>
+						<bottomPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Right" verticalAlignment="Bottom">
+						<font size="7"/>
+					</textElement>
+					<text><![CDATA[PERC]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="Title" x="0" y="0" width="550" height="33" forecolor="#000000"/>
+					<textElement verticalAlignment="Middle"/>
+					<text><![CDATA[Relação de exceção nas compras]]></text>
+				</staticText>
+				<textField pattern="&apos;Período: &apos;dd/MM/yyyy &apos; a &apos;">
+					<reportElement x="142" y="58" width="134" height="20"/>
+					<textElement textAlignment="Right"/>
+					<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DATAINI}]]></textFieldExpression>
+				</textField>
+				<textField pattern="dd/MM/yyyy">
+					<reportElement x="276" y="58" width="100" height="20"/>
+					<textElement/>
+					<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DATAFIN}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement style="Column header" x="276" y="80" width="74" height="15" forecolor="#000000"/>
+					<box>
+						<bottomPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Bottom">
+						<font size="7"/>
+					</textElement>
+					<text><![CDATA[NRO.NOTA]]></text>
+				</staticText>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band/>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="16" splitType="Stretch">
+			<printWhenExpression><![CDATA[$F{PERC} != 0.00]]></printWhenExpression>
+			<line>
+				<reportElement positionType="FixRelativeToBottom" x="0" y="15" width="555" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineColor="#999999"/>
+				</graphicElement>
+			</line>
+			<textField>
+				<reportElement style="Detail" x="0" y="0" width="62" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{REFERENCIA}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="Detail" x="62" y="0" width="110" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRPROD}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="Detail" x="172" y="0" width="32" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$F{CODPARC}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="Detail" x="204" y="0" width="72" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{RAZAOSOCIAL}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement style="Detail" x="350" y="0" width="50" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DT}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0">
+				<reportElement style="Detail" x="400" y="0" width="37" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{QTDNEG}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement style="Detail" x="437" y="0" width="40" height="15"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{VLRUNIT}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement style="Detail" x="477" y="0" width="40" height="15"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{COMPRA_ANT}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00 &apos;%&apos;">
+				<reportElement style="Detail" x="516" y="0" width="37" height="15"/>
+				<box rightPadding="0"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{PERC}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="276" y="0" width="74" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NUMNOTA}+($F{CODPARC} != $F{FORN_ANT} ? "*" : "")]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="20" splitType="Stretch">
+			<textField>
+				<reportElement style="Column header" x="433" y="0" width="80" height="20"/>
+				<textElement textAlignment="Right">
+					<font size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Page "+$V{PAGE_NUMBER}+" of"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement style="Column header" x="513" y="0" width="40" height="20"/>
+				<textElement>
+					<font size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<textField pattern="EEEEE dd MMMMM yyyy">
+				<reportElement style="Column header" x="0" y="0" width="197" height="20"/>
+				<textElement>
+					<font size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="197" y="0" width="236" height="20"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["* Nota com forncedor diferente da compra anterior"]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>
