@@ -51,6 +51,7 @@ BEGIN
 		VALUES (@CODPROD,12,0.01)
 		
 		Print 'Desconto Inserido 0.01"'
+		
 	RETURN
 	END
 	ELSE IF(@USOPROD = 'R' AND @AD_CODPAULISTA ='S')
@@ -60,7 +61,7 @@ BEGIN
 		VALUES (@CODPROD,22,0.01)
 
 		Print 'Desconto Inserido 0.01"'
-
+				
 	RETURN
 	END
 
