@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Exceção de compras" language="groovy" pageWidth="595" pageHeight="842" columnWidth="535" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
-	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.zoom" value="2.0"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
 	<style name="Title" forecolor="#FFFFFF" fontName="Arial" fontSize="26" isBold="true" pdfFontName="Helvetica-Bold"/>
@@ -42,10 +42,11 @@ SELECT P.REFERENCIA
 				INNER JOIN TGFPAR PAR ON C.CODPARC = PAR.CODPARC
 				INNER JOIN TSIEMP E ON C.CODEMP = E.CODEMP
  WHERE C.TIPMOV = 'C'
+   AND C.STATUSNOTA IN ((CASE WHEN E.CODEMP = 22 THEN C.STATUSNOTA ELSE  'L' END))
    AND C.STATUSNOTA = 'L'
-   AND C.CODTIPOPER <> 717
+   AND C.CODTIPOPER NOT IN (717,791)
    AND P.USOPROD = 'R'
-   AND CONVERT(DATE,ISNULL(C.DTENTSAI,C.DTNEG)) BETWEEN CONVERT(DATE,ISNULL($P{DTINI},DATEADD(DAY,-1,GETDATE()))) AND CONVERT(DATE,ISNULL($P{DTFIN},DATEADD(DAY,-1,GETDATE())))
+   AND CONVERT(DATE,ISNULL(C.DTENTSAI,C.DTNEG)) BETWEEN CONVERT(DATE,ISNULL($P{DTINI},GETDATE())) AND CONVERT(DATE,ISNULL($P{DTFIN},GETDATE()))
    AND C.CODEMP = ISNULL($P{CODEMP},C.CODEMP)
    AND (P.REFERENCIA LIKE $P{GRUPO}+'%' OR $P{GRUPO} IS NULL)
 )
@@ -61,10 +62,11 @@ SELECT CODEMP
 	 , VLRUNIT
 	 , COMPRA_ANT
 	 , CASE WHEN COMPRA_ANT > 0 THEN ROUND(-100+(VLRUNIT/COMPRA_ANT)*100,2) ELSE 0 END PERC
-     , CONVERT(DATE,ISNULL($P{DTINI},DATEADD(DAY,-1,GETDATE()))) DATAINI
-     , CONVERT(DATE,ISNULL($P{DTFIN},DATEADD(DAY,-1,GETDATE()))) DATAFIN
+     , CONVERT(DATE,ISNULL($P{DTINI},GETDATE())) DATAINI
+     , CONVERT(DATE,ISNULL($P{DTFIN},GETDATE())) DATAFIN
      , NUMNOTA
      , FORN_ANT
+     , CASE WHEN CODPARC <> FORN_ANT THEN '*' ELSE '' END VALIDA
   FROM (
 	SELECT *
 		 , (SELECT TOP 1 I.VLRUNIT FROM TGFCAB C INNER JOIN TGFITE I ON C.NUNOTA = I.NUNOTA WHERE I.CODPROD = X.CODPROD AND ISNULL(C.DTENTSAI,C.DTNEG) < X.DT AND C.TIPMOV = 'C' AND C.STATUSNOTA = 'L' AND C.CODEMP = X.CODEMP AND C.CODTIPOPER <> 717 ORDER BY ISNULL(C.DTENTSAI,C.DTNEG) DESC) AS COMPRA_ANT
@@ -87,6 +89,7 @@ SELECT CODEMP
 	<field name="DATAFIN" class="java.sql.Timestamp"/>
 	<field name="NUMNOTA" class="java.lang.Integer"/>
 	<field name="FORN_ANT" class="java.lang.Integer"/>
+	<field name="VALIDA" class="java.lang.String"/>
 	<sortField name="CODEMP"/>
 	<sortField name="REFERENCIA"/>
 	<group name="CODEMP" isStartNewPage="true">
@@ -316,7 +319,7 @@ SELECT CODEMP
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
-				<textFieldExpression class="java.lang.String"><![CDATA[$F{NUMNOTA}+($F{CODPARC} != $F{FORN_ANT} ? "*" : "")]]></textFieldExpression>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NUMNOTA}+$F{VALIDA}]]></textFieldExpression>
 			</textField>
 		</band>
 	</detail>
