@@ -1,0 +1,1 @@
+exec [sankhya].[AD_SIGNA]
