@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="relacao_materiais" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="101"/>
+	<property name="ireport.y" value="0"/>
+	<queryString>
+		<![CDATA[SELECT CAB.NUMNOTA AS 'NOTA'
+		,CAB.DTENTSAI
+		,CAB.CODEMP
+		,CAB.NUNOTA AS 'NUMERO_UNICO'
+		,PAR.NOMEPARC
+		,IXN.NUMNOTA AS 'NOTA_CTE'
+		,IXN.VLRNOTA
+		,IXN.CODEMP AS 'CODEMP1'
+		,PAR1.NOMEPARC AS 'NOMEPARC1'
+		,IXN.XNOMETOMA AS 'TOMADOR'
+FROM TGFIXN IXN INNER JOIN TGFCAB CAB ON (IXN.STATUS NOT IN (1,2) AND CAB.CODEMP NOT IN (22) AND IXN.TIPO = 'C')
+				INNER JOIN TGFPAR PAR ON (CAB.CODPARC=PAR.CODPARC)
+				INNER JOIN TGFPAR PAR1 ON (IXN.CODPARC=PAR1.CODPARC)
+WHERE  IXN.DOCSREF LIKE '%'+CAB.CHAVENFE+'%'
+AND CAB.TIPMOV IN ('C')
+AND IXN.SITUACAOCTE NOT IN ('C')
+ORDER BY CAB.CODEMP, CAB.DTENTSAI]]>
+	</queryString>
+	<field name="NOTA" class="java.lang.Integer"/>
+	<field name="DTENTSAI" class="java.sql.Timestamp"/>
+	<field name="CODEMP" class="java.lang.Short"/>
+	<field name="NUMERO_UNICO" class="java.lang.Integer"/>
+	<field name="NOMEPARC" class="java.lang.String"/>
+	<field name="NOTA_CTE" class="java.lang.Integer"/>
+	<field name="VLRNOTA" class="java.lang.Double"/>
+	<field name="CODEMP1" class="java.lang.Short"/>
+	<field name="NOMEPARC1" class="java.lang.String"/>
+	<field name="TOMADOR" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<pageHeader>
+		<band height="44">
+			<staticText>
+				<reportElement x="107" y="2" width="274" height="30"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="14" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CTE PENDENTE REFERENTE A NOTA]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy HH:mm">
+				<reportElement x="468" y="12" width="85" height="13"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="419" y="12" width="49" height="13"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Gerado em:]]></text>
+			</staticText>
+			<textField evaluationTime="Report" pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="538" y="0" width="15" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="453" y="0" width="63" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Right" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Pág.:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="533" y="0" width="5" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[/]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="515" y="0" width="15" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<image onErrorType="Icon">
+				<reportElement key="image-1" x="2" y="2" width="77" height="34"/>
+				<imageExpression class="java.lang.String"><![CDATA["https://sistema.realonibus.com.br//mge/image/logocliente/logo.png"]]></imageExpression>
+			</image>
+			<line>
+				<reportElement x="0" y="39" width="555" height="1"/>
+			</line>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="20">
+			<staticText>
+				<reportElement x="100" y="0" width="67" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="false" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[DATA ENTRADA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="49" y="0" width="51" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="7" isBold="false" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[NOTA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="167" y="0" width="133" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="false" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[PARCEIRO NOTA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="300" y="0" width="57" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="false" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[CTE NUMERO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="357" y="0" width="111" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="false" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[PARCEIRO CTE]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2" y="0" width="47" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="7" isBold="false" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[CODEMP]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="468" y="0" width="87" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="false" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[TOMADOR]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="49" y="0" width="51" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$F{NOTA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="100" y="0" width="67" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DTENTSAI}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="167" y="0" width="133" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NOMEPARC}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="300" y="0" width="57" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$F{NOTA_CTE}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="357" y="0" width="111" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NOMEPARC1}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="2" y="0" width="47" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Short"><![CDATA[$F{CODEMP}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="468" y="0" width="85" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{TOMADOR}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>
