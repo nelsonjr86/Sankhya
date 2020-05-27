@@ -382,7 +382,7 @@ GROUP BY
 				<text><![CDATA[Data da Venda:]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="24" y="289" width="58" height="14"/>
+				<reportElement x="24" y="289" width="80" height="14"/>
 				<textElement textAlignment="Left" verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
@@ -436,7 +436,7 @@ GROUP BY
 				<text><![CDATA[]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="24" y="303" width="58" height="14"/>
+				<reportElement x="24" y="303" width="85" height="14"/>
 				<textElement textAlignment="Left" verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>

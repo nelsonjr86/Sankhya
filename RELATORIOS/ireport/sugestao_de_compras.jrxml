@@ -3,6 +3,11 @@
 	<property name="ireport.zoom" value="1.5"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
+	<parameter name="CODEMP" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TSIEMP"/>
+		<parameterDescription><![CDATA[Empresa]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
 	<queryString>
 		<![CDATA[SELECT DISTINCT *
   FROM (
@@ -95,6 +100,8 @@ ROUND(ISNULL((ISNULL(GIR.VLRVENDA_1,0)
 WHERE CURVA IN ('A','B')
   AND PONTO_OK = 'S'
   AND SUGESTAO > 0
+  AND LOJA_COD = ISNULL($P{CODEMP},LOJA_COD)
+  AND LOJA_COD NOT IN  (26)
 ORDER BY
 	LOJA_COD,
 	REFINT,

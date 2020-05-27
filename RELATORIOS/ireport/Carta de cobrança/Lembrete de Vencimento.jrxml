@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Carta Cobrança Simples" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="P_CODPARC" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TGFPAR"/>
+		<parameterDescription><![CDATA[Parceiro]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+CAST(FIN.NUFIN AS DECIMAL) AS NUFIN,
+
+FIN.CODPARC,FIN.NUMNOTA,PAR.RAZAOSOCIAL,PAR.CGC_CPF,
+SUM(FIN.VLRDESDOB + FIN.VLRJURO) AS VLRDESDOB,FIN.DTVENC, FIN.DESDOBRAMENTO,
+EMP.RAZAOSOCIAL AS NOMEEMPRESA,
+EMP.CODEMP,
+
+/*DADOS DA EMPRESA*/
+    /*REPLACE(GEM.LOGODANFE,'Repo://','/home/mgeweb/modelos/') AS LOGO,*/
+    CONCAT('/home/mgeweb/modelos/',GEM.LOGODANFE) AS 'LOGO'
+
+FROM TGFFIN FIN, TGFPAR PAR, TSIEMP EMP, TGFEMP GEM
+WHERE FIN.CODPARC = PAR.CODPARC
+AND FIN.CODEMP = EMP.CODEMP
+AND FIN.CODEMP = GEM.CODEMP
+AND FIN.RECDESP = 1
+AND FIN.PROVISAO = 'N'
+AND FIN.DHBAIXA IS NULL
+AND FIN.CODTIPTIT = 45
+AND DATEDIFF(DAY, fin.dtvenc, GETDATE()) = -3 --SQLSERVER
+AND FIN.CODPARC = $P{P_CODPARC}
+AND EMP.RAZAOSOCIAL = 'REAL ONIBUS LTDA'
+GROUP BY    FIN.CODPARC,FIN.NUFIN,FIN.NUMNOTA,PAR.RAZAOSOCIAL,PAR.CGC_CPF,FIN.DTVENC, FIN.DESDOBRAMENTO, EMP.RAZAOSOCIAL, EMP.CODEMP, GEM.LOGODANFE
+ORDER BY FIN.CODPARC, FIN.DTVENC]]>
+	</queryString>
+	<field name="NUFIN" class="java.math.BigDecimal"/>
+	<field name="CODPARC" class="java.lang.Integer"/>
+	<field name="NUMNOTA" class="java.lang.Integer"/>
+	<field name="RAZAOSOCIAL" class="java.lang.String"/>
+	<field name="CGC_CPF" class="java.lang.String"/>
+	<field name="VLRDESDOB" class="java.math.BigDecimal"/>
+	<field name="DTVENC" class="java.sql.Timestamp"/>
+	<field name="DESDOBRAMENTO" class="java.lang.String"/>
+	<field name="NOMEEMPRESA" class="java.lang.String"/>
+	<field name="CODEMP" class="java.lang.Short"/>
+	<field name="LOGO" class="java.lang.String"/>
+	<group name="PARCEIRO" isStartNewPage="true">
+		<groupExpression><![CDATA[$F{CODPARC}]]></groupExpression>
+		<groupHeader>
+			<band height="21">
+				<staticText>
+					<reportElement x="200" y="0" width="100" height="20"/>
+					<textElement>
+						<font size="12"/>
+					</textElement>
+					<text><![CDATA[Valor]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="0" y="0" width="100" height="20"/>
+					<textElement>
+						<font size="12"/>
+					</textElement>
+					<text><![CDATA[Nr.Unico]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="100" y="0" width="100" height="20"/>
+					<textElement>
+						<font size="12"/>
+					</textElement>
+					<text><![CDATA[Nota]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="300" y="0" width="100" height="20"/>
+					<textElement>
+						<font size="12"/>
+					</textElement>
+					<text><![CDATA[Data Vencimento]]></text>
+				</staticText>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="161">
+				<staticText>
+					<reportElement x="0" y="1" width="555" height="158"/>
+					<textElement/>
+					<text><![CDATA[Caso não tenha os dados bancários para efetivação do pagamento, favor contatar-nos pelo telefone (31) 2125-9393 ramal 9389 ou através do e-mail cobranca@realonibus.com.br.
+
+
+Atenciosamente,
+Departamento de Cobrança
+REAL ONIBUS LTDA
+16.580.748/0001-40
+]]></text>
+				</staticText>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="55" splitType="Stretch">
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="455" y="30" width="100" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<image onErrorType="Icon">
+				<reportElement x="1" y="0" width="120" height="50"/>
+				<imageExpression class="java.lang.String"><![CDATA[$F{LOGO}]]></imageExpression>
+			</image>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="22" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="555" height="22"/>
+				<textElement>
+					<font size="14" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Lembrete de boleto a vencer]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="146" splitType="Stretch">
+			<staticText>
+				<reportElement x="1" y="77" width="555" height="50"/>
+				<textElement/>
+				<text><![CDATA[Prezados, vimos por meio deste apenas lembrar-lhe a data de seu próximo vencimento, segue anexo detalhamento.
+]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="0" y="0" width="555" height="77"/>
+				<textElement>
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["À \n"+
+$F{RAZAOSOCIAL}+"\n"+
+"CNPJ:"+($F{CGC_CPF})+"\n"+
+"A/C. Contas a Pagar."]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="21" splitType="Stretch">
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="200" y="0" width="100" height="20"/>
+				<textElement>
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRDESDOB}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="0" width="100" height="20"/>
+				<textElement>
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUFIN}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="100" y="0" width="100" height="20"/>
+				<textElement>
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$F{NUMNOTA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="300" y="0" width="100" height="20"/>
+				<textElement>
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DTVENC}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band height="45" splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="54" splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="42" splitType="Stretch"/>
+	</summary>
+</jasperReport>
