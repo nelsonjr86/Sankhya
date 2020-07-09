@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="relacao_materiais" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="parameter1" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["T"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT *
+
+  FROM (
+SELECT /*RELATORIO COMPRAS POR FORNECEDOR*/
+    RANK() OVER (ORDER BY TOTAL_COMPRA_PRODUTO_AC DESC) AS RANK,
+	COD_PARCEIRO,
+	NOME_PARCEIRO,
+	TOTAL_COMPRA_PRODUTO_AC AS 'COMPRAS-1',
+	TOTAL_COMPRA_PRODUTO_AC1 AS 'COMPRAS-2',
+	TOTAL_COMPRA_PRODUTO_AC2 AS 'COMPRAS-3'
+
+FROM (
+
+SELECT TOP 100 PERCENT
+CAB.CODPARC COD_PARCEIRO,
+PAR.NOMEPARC NOME_PARCEIRO,
+
+ISNULL((SELECT
+SUM(C.VLRNOTA) VLRTOT
+FROM TGFCAB C
+WHERE C.TIPMOV='C' AND C.CODVEND <> 59 AND c.NUNOTA IN (SELECT NUNOTA FROM TGFFIN WITH (NOLOCK) WHERE ORIGEM = 'E' AND CODTIPTIT <> 69)
+AND C.CODTIPOPER IN (733,734)
+AND C.CODPARC=CAB.CODPARC
+AND C.CODEMP IN (22,28)
+AND ((CONVERT(DATE,C.DTENTSAI) BETWEEN DATEADD(DAY,1,EOMONTH(DATEADD(MONTH, -2, GETDATE()))) AND EOMONTH(DATEADD(MONTH, -1, GETDATE()))))
+),0) TOTAL_COMPRA_PRODUTO_AC
+
+,ISNULL((SELECT
+SUM(C.VLRNOTA) VLRTOT
+FROM TGFCAB C
+WHERE c.TIPMOV='C' AND c.CODVEND <> 59 AND C.NUNOTA IN (SELECT NUNOTA FROM TGFFIN WITH (NOLOCK) WHERE ORIGEM = 'E' AND CODTIPTIT <> 69)
+AND c.CODTIPOPER IN (733,734)
+AND C.CODPARC=CAB.CODPARC
+AND C.CODEMP IN (22,28)
+AND ((CONVERT(DATE,C.DTENTSAI) BETWEEN DATEADD(DAY,1,EOMONTH(DATEADD(MONTH, -3, GETDATE()))) AND EOMONTH(DATEADD(MONTH, -2, GETDATE()))))
+),0) TOTAL_COMPRA_PRODUTO_AC1
+
+,ISNULL((SELECT
+SUM(C.VLRNOTA) VLRTOT
+FROM TGFCAB C
+WHERE c.TIPMOV='C' AND c.CODVEND <> 59 AND c.NUNOTA IN (SELECT NUNOTA FROM TGFFIN WITH (NOLOCK) WHERE ORIGEM = 'E' AND CODTIPTIT <> 69)
+AND c.CODTIPOPER IN (733,734)
+AND C.CODPARC=CAB.CODPARC
+AND C.CODEMP IN (22,28)
+AND ((CONVERT(DATE,C.DTENTSAI) BETWEEN DATEADD(DAY,1,EOMONTH(DATEADD(MONTH, -4, GETDATE()))) AND EOMONTH(DATEADD(MONTH, -3, GETDATE()))))
+),0) TOTAL_COMPRA_PRODUTO_AC2
+
+FROM TGFCAB CAB
+INNER JOIN TGFPAR PAR ON (PAR.CODPARC=CAB.CODPARC)
+INNER JOIN TSIEMP EMP ON (EMP.CODEMP=CAB.CODEMP)
+
+WHERE CAB.TIPMOV='C' AND cab.CODVEND <> 59 AND CAB.NUNOTA IN (SELECT NUNOTA FROM TGFFIN WITH (NOLOCK) WHERE ORIGEM = 'E' AND CODTIPTIT <> 69)
+			AND CAB.CODTIPOPER IN (733,734)
+AND CAB.CODEMP IN (22,28)
+  --AND EMP.CODEMP = 1
+
+AND CAB.CODVEND <> 59 AND CAB.NUNOTA IN (SELECT NUNOTA FROM TGFFIN WHERE ORIGEM = 'E' AND CODTIPTIT <> 69)
+AND ((CONVERT(DATE,CAB.DTENTSAI) BETWEEN DATEADD(DAY,1,EOMONTH(DATEADD(MONTH, -4, GETDATE()))) AND EOMONTH(DATEADD(MONTH, -1, GETDATE()))))
+GROUP BY  CAB.CODPARC, PAR.NOMEPARC
+ORDER BY TOTAL_COMPRA_PRODUTO_AC DESC
+
+) SUB
+WHERE TOTAL_COMPRA_PRODUTO_AC > 0) X
+
+ORDER BY 4 DESC]]>
+	</queryString>
+	<field name="RANK" class="java.lang.Long"/>
+	<field name="COD_PARCEIRO" class="java.lang.Integer"/>
+	<field name="NOME_PARCEIRO" class="java.lang.String"/>
+	<field name="COMPRAS-1" class="java.lang.Double"/>
+	<field name="COMPRAS-2" class="java.lang.Double"/>
+	<field name="COMPRAS-3" class="java.lang.Double"/>
+	<variable name="COMPRAS-11" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{COMPRAS-1}]]></variableExpression>
+	</variable>
+	<variable name="COMPRAS-21" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{COMPRAS-2}]]></variableExpression>
+	</variable>
+	<variable name="COMPRAS-31" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{COMPRAS-3}]]></variableExpression>
+	</variable>
+	<group name="NUNOTA">
+		<groupExpression><![CDATA[$P{parameter1}]]></groupExpression>
+		<groupHeader>
+			<band height="22">
+				<staticText>
+					<reportElement x="115" y="0" width="104" height="20"/>
+					<textElement textAlignment="Center" verticalAlignment="Top">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[NOME_PARCEIRO]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="48" y="0" width="67" height="20"/>
+					<textElement verticalAlignment="Top">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[COD_PARCEIRO]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="219" y="0" width="95" height="20"/>
+					<textElement verticalAlignment="Top">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[PERIODO -1]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="318" y="1" width="95" height="19"/>
+					<textElement verticalAlignment="Top">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[PERIODO -2]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="416" y="1" width="98" height="19"/>
+					<textElement verticalAlignment="Top">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[PERIODO -3]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="3" y="0" width="40" height="20"/>
+					<textElement verticalAlignment="Top">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[RANK]]></text>
+				</staticText>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="20">
+				<textField pattern="#,##0.00" isBlankWhenNull="false">
+					<reportElement mode="Transparent" x="416" y="2" width="95" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+					</box>
+					<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="8" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.Double"><![CDATA[$V{COMPRAS-31}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="0" y="0" width="58" height="17"/>
+					<textElement verticalAlignment="Middle">
+						<font isBold="true"/>
+					</textElement>
+					<text><![CDATA[TOTAL]]></text>
+				</staticText>
+				<textField pattern="#,##0.00" isBlankWhenNull="false">
+					<reportElement mode="Transparent" x="218" y="2" width="93" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+					</box>
+					<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="8" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.Double"><![CDATA[$V{COMPRAS-11}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#,##0.00" isBlankWhenNull="false">
+					<reportElement mode="Transparent" x="317" y="2" width="93" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+					</box>
+					<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="8" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.Double"><![CDATA[$V{COMPRAS-21}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<pageHeader>
+		<band height="41">
+			<staticText>
+				<reportElement x="79" y="2" width="340" height="34"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[RELATORIO COMPRAS POR FORNECEDOR PAULISTA]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy HH:mm">
+				<reportElement x="468" y="12" width="85" height="13"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="419" y="12" width="49" height="13"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Gerado em:]]></text>
+			</staticText>
+			<textField evaluationTime="Report" pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="538" y="0" width="15" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="453" y="0" width="63" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Right" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Pág.:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="533" y="0" width="5" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[/]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="515" y="0" width="15" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<image onErrorType="Icon">
+				<reportElement key="image-1" x="2" y="2" width="77" height="34"/>
+				<imageExpression class="java.lang.String"><![CDATA["https://sistema.realonibus.com.br//mge/image/logocliente/logo.png"]]></imageExpression>
+			</image>
+			<line>
+				<reportElement x="2" y="36" width="555" height="1"/>
+			</line>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band/>
+	</columnHeader>
+	<detail>
+		<band height="19" splitType="Stretch">
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="47" y="0" width="67" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$F{COD_PARCEIRO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#0.00 %" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="115" y="0" width="103" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NOME_PARCEIRO}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="2" y="15" width="555" height="1"/>
+			</line>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="2" y="1" width="40" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Long"><![CDATA[$F{RANK}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="218" y="0" width="95" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{COMPRAS-1}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="317" y="0" width="95" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{COMPRAS-2}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="416" y="0" width="97" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{COMPRAS-3}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>
