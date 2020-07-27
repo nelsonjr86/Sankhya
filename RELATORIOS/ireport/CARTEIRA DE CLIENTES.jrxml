@@ -14,6 +14,10 @@ SELECT PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.APELIDO AS 'VENDEDOR', ISNULL(G.CODGRUP
 	 , G.NOME
 	 ,SUM(CAB.VLRNOTA) AS 'ANTERIOR'
 	 , 0.00 AS 'ATUAL'
+	 ,(SELECT PREVREC FROM TGFMET
+WHERE MONTH(DTREF) = MONTH(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
+AND YEAR(DTREF) = YEAR(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
+AND TGFMET.CODVEND=VEN.CODVEND) AS 'META'
 
 FROM TGFPAR PAR
 	LEFT JOIN TGFVEN VEN ON (PAR.CODVEND=VEN.CODVEND)
@@ -23,7 +27,7 @@ FROM TGFPAR PAR
 	LEFT JOIN AD_GRUPOSPARCEIROS G ON PAR.AD_CODGRUPO = G.CODGRUPO
 WHERE PAR.CODVEND = $P{CODVEND}
 AND PAR.CLIENTE = 'S'
-GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.APELIDO, G.CODGRUPO, G.NOME
+GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND,VEN.APELIDO, G.CODGRUPO, G.NOME
 
 union all
 
@@ -31,6 +35,10 @@ SELECT PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.APELIDO AS 'VENDEDOR', ISNULL(G.CODGRUP
 	 , G.NOME
 	 , 0.00 AS 'ANTERIOR'
 	 , SUM(CAB.VLRNOTA) AS 'ATUAL'
+	 ,(SELECT PREVREC FROM TGFMET
+WHERE MONTH(DTREF) = MONTH(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
+AND YEAR(DTREF) = YEAR(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
+AND TGFMET.CODVEND=VEN.CODVEND) AS 'META'
 
 FROM TGFPAR PAR
 	LEFT JOIN TGFVEN VEN ON (PAR.CODVEND=VEN.CODVEND)
@@ -40,7 +48,51 @@ FROM TGFPAR PAR
 	LEFT JOIN AD_GRUPOSPARCEIROS G ON PAR.AD_CODGRUPO = G.CODGRUPO
 WHERE PAR.CODVEND = $P{CODVEND}
 AND PAR.CLIENTE = 'S'
-GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.APELIDO, G.CODGRUPO, G.NOME
+GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND, VEN.APELIDO, G.CODGRUPO, G.NOME
+
+union all
+
+SELECT PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.APELIDO AS 'VENDEDOR', ISNULL(G.CODGRUPO,0) AS CODGRUPO
+	 , G.NOME
+	 ,SUM(CAB.VLRNOTA) AS 'ANTERIOR'
+	 , 0.00 AS 'ATUAL'
+	 ,(SELECT PREVREC FROM TGFMET
+WHERE MONTH(DTREF) = MONTH(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
+AND YEAR(DTREF) = YEAR(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
+AND TGFMET.CODVEND=VEN.CODVEND) AS 'META'
+
+FROM TGFPAR PAR
+	LEFT JOIN TGFVEN VEN ON (PAR.CODVEND=VEN.CODVEND)
+	LEFT JOIN TGFCAB CAB ON (CAB.CODPARC=PAR.CODPARC
+			AND CONVERT(DATE,CAB.DTNEG) BETWEEN DATEADD(MONTH, -1, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)) AND DATEADD(MONTH,0,DATEADD(DAY, -1, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)))
+			AND CAB.TIPMOV = 'V')
+	LEFT JOIN AD_GRUPOSPARCEIROS G ON PAR.AD_CODGRUPO = G.CODGRUPO
+WHERE PAR.CODVEND not in ($P{CODVEND})
+AND PAR.CLIENTE = 'S'
+AND CAB.CODVEND = $P{CODVEND}
+GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND,VEN.APELIDO, G.CODGRUPO, G.NOME
+
+UNION ALL
+
+SELECT PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.APELIDO AS 'VENDEDOR', ISNULL(G.CODGRUPO,0) AS CODGRUPO
+	 , G.NOME
+	 , 0.00 AS 'ANTERIOR'
+	 , SUM(CAB.VLRNOTA) AS 'ATUAL'
+	 ,(SELECT PREVREC FROM TGFMET
+WHERE MONTH(DTREF) = MONTH(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
+AND YEAR(DTREF) = YEAR(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
+AND TGFMET.CODVEND=VEN.CODVEND) AS 'META'
+
+FROM TGFPAR PAR
+	LEFT JOIN TGFVEN VEN ON (PAR.CODVEND=VEN.CODVEND)
+	LEFT JOIN TGFCAB CAB ON (CAB.CODPARC=PAR.CODPARC
+			AND CONVERT(DATE,CAB.DTNEG) BETWEEN DATEADD(MONTH, -0, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)) AND GETDATE()
+			AND CAB.TIPMOV = 'V')
+	LEFT JOIN AD_GRUPOSPARCEIROS G ON PAR.AD_CODGRUPO = G.CODGRUPO
+WHERE PAR.CODVEND not in ($P{CODVEND})
+AND PAR.CLIENTE = 'S'
+AND CAB.CODVEND = $P{CODVEND}
+GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND, VEN.APELIDO, G.CODGRUPO, G.NOME
 
 )
 SELECT TOP 1000
@@ -49,17 +101,20 @@ SELECT TOP 1000
 	 , VENDEDOR
 	 , ANTERIOR
      , ATUAL
+	 , META
   FROM (SELECT CODGRUPO
 			 , '(G) '+NOME AS NOME
 			 , VENDEDOR AS 'VENDEDOR'
 			 , SUM(ANTERIOR) AS 'ANTERIOR'
 			 , SUM(ATUAL) AS 'ATUAL'
+			 , META
 		  FROM X
 		 WHERE CODGRUPO > 0
 		   AND 'P' = 'G'
 		 GROUP BY CODGRUPO
 				, NOME
 				, VENDEDOR
+				, META
 
 		 UNION ALL
 		SELECT CODPARC
@@ -67,6 +122,7 @@ SELECT TOP 1000
 			 , VENDEDOR AS 'VENDEDOR'
 			 , SUM(ANTERIOR) AS 'ANTERIOR'
 			 , SUM(ATUAL) AS 'ATUAL'
+			 , META
 
 		  FROM X
 		 WHERE ((CODGRUPO = 0
@@ -74,7 +130,8 @@ SELECT TOP 1000
 		    OR ('P' <> 'G'))
 		 GROUP BY RAZAOSOCIAL
 				, CODPARC
-				, VENDEDOR) Z
+				, VENDEDOR
+				, META) Z
 ORDER BY Z.ATUAL DESC]]>
 	</queryString>
 	<field name="CODGRUPO" class="java.lang.Integer"/>
@@ -82,6 +139,7 @@ ORDER BY Z.ATUAL DESC]]>
 	<field name="VENDEDOR" class="java.lang.String"/>
 	<field name="ANTERIOR" class="java.lang.Double"/>
 	<field name="ATUAL" class="java.lang.Double"/>
+	<field name="META" class="java.lang.Double"/>
 	<variable name="ATUAL-1" class="java.lang.Double" calculation="Sum">
 		<variableExpression><![CDATA[$F{ATUAL}]]></variableExpression>
 	</variable>
@@ -98,7 +156,7 @@ ORDER BY Z.ATUAL DESC]]>
 				<imageExpression class="java.lang.String"><![CDATA["https://sistema.realonibus.com.br//mge/image/logocliente/logo.png"]]></imageExpression>
 			</image>
 			<staticText>
-				<reportElement x="119" y="2" width="334" height="20"/>
+				<reportElement x="91" y="0" width="334" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Top">
 					<font size="13"/>
 				</textElement>
@@ -133,7 +191,7 @@ ORDER BY Z.ATUAL DESC]]>
 				<text><![CDATA[/]]></text>
 			</staticText>
 			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
-				<reportElement mode="Transparent" x="119" y="22" width="238" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<reportElement mode="Transparent" x="142" y="20" width="238" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
 					<font fontName="SansSerif" size="12" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 				</textElement>
@@ -147,7 +205,7 @@ ORDER BY Z.ATUAL DESC]]>
 				<textElement textAlignment="Center" verticalAlignment="Top">
 					<font size="8" isBold="true"/>
 				</textElement>
-				<text><![CDATA[* Este relatorio esta ordnado por valor "ATUAL" e também esta considerando somente as vendas da carteira de Clientes. Qualquer venda feita fora da carteira não considera.]]></text>
+				<text><![CDATA[* Este relatorio esta ordnado por valor "ATUAL" e também esta considerando as vendas da carteira de Clientes  e fora da carteira de clientes. ]]></text>
 			</staticText>
 		</band>
 	</pageHeader>
@@ -208,7 +266,7 @@ ORDER BY Z.ATUAL DESC]]>
 	<detail>
 		<band height="17" splitType="Prevent">
 			<textField pattern="#,##0.00">
-				<reportElement x="355" y="2" width="59" height="15"/>
+				<reportElement x="356" y="2" width="59" height="15"/>
 				<box rightPadding="2"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="7"/>
@@ -247,7 +305,7 @@ ORDER BY Z.ATUAL DESC]]>
 		</band>
 	</detail>
 	<summary>
-		<band height="19">
+		<band height="23">
 			<line>
 				<reportElement x="1" y="3" width="555" height="1"/>
 				<graphicElement>
@@ -273,6 +331,29 @@ ORDER BY Z.ATUAL DESC]]>
 					<font fontName="SansSerif" size="8" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 				</textElement>
 				<textFieldExpression class="java.lang.Double"><![CDATA[$V{ANTERIOR-1}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="2" y="4" width="97" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[META FALTANTE]]></text>
+			</staticText>
+			<textField pattern="#,##0.00">
+				<reportElement x="99" y="4" width="65" height="15"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{META}-$V{ATUAL-1}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00 %">
+				<reportElement x="164" y="4" width="65" height="15"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[((($F{META}-$V{ATUAL-1})*0.01)/$F{META}/0.01)]]></textFieldExpression>
 			</textField>
 		</band>
 	</summary>
