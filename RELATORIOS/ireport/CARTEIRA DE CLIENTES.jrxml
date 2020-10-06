@@ -12,87 +12,155 @@
 		<![CDATA[WITH X AS (
 SELECT PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.APELIDO AS 'VENDEDOR', ISNULL(G.CODGRUPO,0) AS CODGRUPO
 	 , G.NOME
-	 ,SUM(CAB.VLRNOTA) AS 'ANTERIOR'
+	 ,SUM(ITE.VLRTOT) AS 'ANTERIOR'
 	 , 0.00 AS 'ATUAL'
 	 ,(SELECT PREVREC FROM TGFMET
 WHERE MONTH(DTREF) = MONTH(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
 AND YEAR(DTREF) = YEAR(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
-AND TGFMET.CODVEND=VEN.CODVEND) AS 'META'
+AND TGFMET.CODVEND=$P{CODVEND}) AS 'META'
+	 , 0 AS 'VLRTOT'
+	 , 0 AS 'VLRVENDA'
+	 , 0 AS 'DESCONTO'
+	 , 0 AS 'ACRESCIMO'
+	 , 0 AS 'DEVOLUCAO'
+	 , CAB.CODEMP
+
 
 FROM TGFPAR PAR
-	LEFT JOIN TGFVEN VEN ON (PAR.CODVEND=VEN.CODVEND)
-	LEFT JOIN TGFCAB CAB ON (CAB.CODPARC=PAR.CODPARC
+	INNER JOIN TGFCAB CAB ON (CAB.CODPARC=PAR.CODPARC
 			AND CONVERT(DATE,CAB.DTNEG) BETWEEN DATEADD(MONTH, -1, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)) AND DATEADD(MONTH,0,DATEADD(DAY, -1, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)))
-			AND CAB.TIPMOV = 'V')
+			AND CAB.TIPMOV = 'V' AND CAB.CODVEND = $P{CODVEND})
+	INNER JOIN TGFITE ITE ON (ITE.NUNOTA=CAB.NUNOTA )
+	LEFT JOIN TGFVEN VEN ON (PAR.CODVEND=VEN.CODVEND)
+	LEFT JOIN TGFTAB TAB ON (ITE.NUTAB = TAB.NUTAB)
 	LEFT JOIN AD_GRUPOSPARCEIROS G ON PAR.AD_CODGRUPO = G.CODGRUPO
 WHERE PAR.CODVEND = $P{CODVEND}
 AND PAR.CLIENTE = 'S'
-GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND,VEN.APELIDO, G.CODGRUPO, G.NOME
+AND CAB.CODTIPOPER IN (900,901,931,934,935,937,936)
+GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND,VEN.APELIDO, G.CODGRUPO, G.NOME, ITE.NUTAB,ITE.CODPROD,CAB.DTNEG, ITE.QTDNEG,ITE.VLRTOT, CAB.CODEMP
 
 union all
 
 SELECT PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.APELIDO AS 'VENDEDOR', ISNULL(G.CODGRUPO,0) AS CODGRUPO
 	 , G.NOME
 	 , 0.00 AS 'ANTERIOR'
-	 , SUM(CAB.VLRNOTA) AS 'ATUAL'
+	 , SUM(ITE.VLRTOT) AS 'ATUAL'
 	 ,(SELECT PREVREC FROM TGFMET
 WHERE MONTH(DTREF) = MONTH(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
 AND YEAR(DTREF) = YEAR(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
-AND TGFMET.CODVEND=VEN.CODVEND) AS 'META'
+AND TGFMET.CODVEND=$P{CODVEND}) AS 'META'
+	 , ITE.VLRTOT AS 'VLRTOT'
+	 , [sankhya].[AD_PRECO](ITE.NUTAB,ITE.CODPROD,CAB.DTNEG)*ITE.QTDNEG AS VLRVENDA
+	 , ROUND(CASE WHEN [sankhya].BH_FC_CALCULA_PRECO_BASE(ITE.NUNOTA, ITE.SEQUENCIA)*ITE.QTDNEG > ITE.VLRTOT THEN [sankhya].BH_FC_CALCULA_PRECO_BASE(ITE.NUNOTA, ITE.SEQUENCIA)*ITE.QTDNEG - ITE.VLRTOT ELSE 0 END,2) AS 'DESCONTO'
+	 , ROUND(CASE WHEN [sankhya].BH_FC_CALCULA_PRECO_BASE(ITE.NUNOTA, ITE.SEQUENCIA)*ITE.QTDNEG <= ITE.VLRTOT THEN ITE.VLRTOT - [sankhya].BH_FC_CALCULA_PRECO_BASE(ITE.NUNOTA, ITE.SEQUENCIA)*ITE.QTDNEG  ELSE 0 END,2) AS 'ACRESCIMO'
+	 , 0 AS 'DEVOLUCAO'
+	 , CAB.CODEMP
 
 FROM TGFPAR PAR
-	LEFT JOIN TGFVEN VEN ON (PAR.CODVEND=VEN.CODVEND)
-	LEFT JOIN TGFCAB CAB ON (CAB.CODPARC=PAR.CODPARC
+	INNER JOIN TGFCAB CAB ON (CAB.CODPARC=PAR.CODPARC
 			AND CONVERT(DATE,CAB.DTNEG) BETWEEN DATEADD(MONTH, -0, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)) AND GETDATE()
-			AND CAB.TIPMOV = 'V')
+			AND CAB.TIPMOV = 'V' AND CAB.CODVEND = $P{CODVEND})
+	INNER JOIN TGFITE ITE ON (ITE.NUNOTA=CAB.NUNOTA)
+	LEFT JOIN TGFVEN VEN ON (PAR.CODVEND=VEN.CODVEND)
+	LEFT JOIN TGFTAB TAB ON (ITE.NUTAB = TAB.NUTAB)
 	LEFT JOIN AD_GRUPOSPARCEIROS G ON PAR.AD_CODGRUPO = G.CODGRUPO
 WHERE PAR.CODVEND = $P{CODVEND}
 AND PAR.CLIENTE = 'S'
-GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND, VEN.APELIDO, G.CODGRUPO, G.NOME
+AND CAB.CODTIPOPER IN (900,901,931,934,935,937,936)
+GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND, VEN.APELIDO, G.CODGRUPO, G.NOME, ITE.NUTAB,ITE.CODPROD,CAB.DTNEG, ITE.QTDNEG,ITE.VLRTOT, CAB.CODEMP, ITE.NUNOTA, ITE.SEQUENCIA
 
-union all
+UNION all /*ANTERIOR VENDAS FORA DA CARTEIRA*/
 
 SELECT PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.APELIDO AS 'VENDEDOR', ISNULL(G.CODGRUPO,0) AS CODGRUPO
 	 , G.NOME
-	 ,SUM(CAB.VLRNOTA) AS 'ANTERIOR'
+	 ,SUM(ITE.VLRTOT) AS 'ANTERIOR'
 	 , 0.00 AS 'ATUAL'
 	 ,(SELECT PREVREC FROM TGFMET
 WHERE MONTH(DTREF) = MONTH(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
 AND YEAR(DTREF) = YEAR(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
-AND TGFMET.CODVEND=VEN.CODVEND) AS 'META'
+AND TGFMET.CODVEND=$P{CODVEND}) AS 'META'
+	 , 0 AS 'VLRTOT'
+	 , 0 AS 'VLRVENDA'
+	 , 0 AS 'DESCONTO'
+	 , 0 AS 'ACRESCIMO'
+	 , 0 AS 'DEVOLUCAO'
+	 , CAB.CODEMP
 
 FROM TGFPAR PAR
-	LEFT JOIN TGFVEN VEN ON (PAR.CODVEND=VEN.CODVEND)
-	LEFT JOIN TGFCAB CAB ON (CAB.CODPARC=PAR.CODPARC
+	INNER JOIN TGFCAB CAB ON (CAB.CODPARC=PAR.CODPARC
 			AND CONVERT(DATE,CAB.DTNEG) BETWEEN DATEADD(MONTH, -1, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)) AND DATEADD(MONTH,0,DATEADD(DAY, -1, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)))
 			AND CAB.TIPMOV = 'V')
+	INNER JOIN TGFITE ITE ON (ITE.NUNOTA=CAB.NUNOTA)
+	LEFT JOIN TGFVEN VEN ON (PAR.CODVEND=VEN.CODVEND)
+	LEFT JOIN TGFTAB TAB ON (ITE.NUTAB = TAB.NUTAB)
 	LEFT JOIN AD_GRUPOSPARCEIROS G ON PAR.AD_CODGRUPO = G.CODGRUPO
 WHERE PAR.CODVEND not in ($P{CODVEND})
 AND PAR.CLIENTE = 'S'
 AND CAB.CODVEND = $P{CODVEND}
-GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND,VEN.APELIDO, G.CODGRUPO, G.NOME
+AND CAB.CODTIPOPER IN (900,901,931,934,935,937,936)
+GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND,VEN.APELIDO, G.CODGRUPO, G.NOME, ITE.NUTAB,ITE.CODPROD,CAB.DTNEG, ITE.QTDNEG,ITE.VLRTOT, CAB.CODEMP
 
-UNION ALL
+UNION ALL /*DEVOLUÇÃO*/
+
+SELECT PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.APELIDO AS 'VENDEDOR', ISNULL(G.CODGRUPO,0) AS CODGRUPO
+	 , G.NOME
+	 , 0 AS 'ANTERIOR'
+	 , 0.00 AS 'ATUAL'
+	 ,(SELECT PREVREC FROM TGFMET
+WHERE MONTH(DTREF) = MONTH(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
+AND YEAR(DTREF) = YEAR(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
+AND TGFMET.CODVEND=$P{CODVEND}) AS 'META'
+	 , 0 AS 'VLRTOT'
+	 , 0 AS 'VLRVENDA'
+	 , 0 AS 'DESCONTO'
+	 , 0 AS 'ACRESCIMO'
+	 , SUM(ITE.VLRTOT-ITE.VLRDESC)*-1 AS 'DEVOLUCAO'
+	 , CAB.CODEMP
+
+FROM TGFPAR PAR
+	INNER JOIN TGFCAB CAB ON (CAB.CODPARC=PAR.CODPARC
+			AND CONVERT(DATE,CAB.DTMOV) BETWEEN DATEADD(MONTH, -0, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)) AND GETDATE())
+	INNER JOIN TGFITE ITE ON (ITE.NUNOTA=CAB.NUNOTA)
+	LEFT JOIN TGFVEN VEN ON (PAR.CODVEND=VEN.CODVEND)
+	LEFT JOIN TGFTAB TAB ON (ITE.NUTAB = TAB.NUTAB)
+	LEFT JOIN AD_GRUPOSPARCEIROS G ON PAR.AD_CODGRUPO = G.CODGRUPO
+WHERE CAB.CODVEND in ($P{CODVEND})
+AND PAR.CLIENTE = 'S'
+AND CAB.CODVEND = $P{CODVEND}
+AND CAB.CODTIPOPER IN (1000,1001,1007,1009,792,1011,1012)
+GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND,VEN.APELIDO, G.CODGRUPO, G.NOME, ITE.NUTAB,ITE.CODPROD,CAB.DTNEG, ITE.QTDNEG,ITE.VLRTOT, CAB.CODEMP
+
+
+UNION ALL /*ATUAL VENDAS FORA DA CARTEIRA*/
 
 SELECT PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.APELIDO AS 'VENDEDOR', ISNULL(G.CODGRUPO,0) AS CODGRUPO
 	 , G.NOME
 	 , 0.00 AS 'ANTERIOR'
-	 , SUM(CAB.VLRNOTA) AS 'ATUAL'
+	 , SUM(ITE.VLRTOT) AS 'ATUAL'
 	 ,(SELECT PREVREC FROM TGFMET
 WHERE MONTH(DTREF) = MONTH(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
 AND YEAR(DTREF) = YEAR(DATEADD(MONTH,-0,CONVERT(DATE,GETDATE())))
-AND TGFMET.CODVEND=VEN.CODVEND) AS 'META'
+AND TGFMET.CODVEND=$P{CODVEND}) AS 'META'
+	 , ITE.VLRTOT AS 'VLRTOT'
+	 , [sankhya].[AD_PRECO](ITE.NUTAB,ITE.CODPROD,CAB.DTNEG)*ITE.QTDNEG AS 'VLRVENDA'
+	 , ROUND(CASE WHEN [sankhya].BH_FC_CALCULA_PRECO_BASE(ITE.NUNOTA, ITE.SEQUENCIA)*ITE.QTDNEG > ITE.VLRTOT THEN [sankhya].BH_FC_CALCULA_PRECO_BASE(ITE.NUNOTA, ITE.SEQUENCIA)*ITE.QTDNEG - ITE.VLRTOT ELSE 0 END,2) AS 'DESCONTO'
+	 , ROUND(CASE WHEN [sankhya].BH_FC_CALCULA_PRECO_BASE(ITE.NUNOTA, ITE.SEQUENCIA)*ITE.QTDNEG <= ITE.VLRTOT THEN ITE.VLRTOT - [sankhya].BH_FC_CALCULA_PRECO_BASE(ITE.NUNOTA, ITE.SEQUENCIA)*ITE.QTDNEG  ELSE 0 END,2) AS 'ACRESCIMO'
+	 , 0 AS 'DEVOLUCAO'
+	 , CAB.CODEMP
 
 FROM TGFPAR PAR
-	LEFT JOIN TGFVEN VEN ON (PAR.CODVEND=VEN.CODVEND)
-	LEFT JOIN TGFCAB CAB ON (CAB.CODPARC=PAR.CODPARC
+	INNER JOIN TGFCAB CAB ON (CAB.CODPARC=PAR.CODPARC
 			AND CONVERT(DATE,CAB.DTNEG) BETWEEN DATEADD(MONTH, -0, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)) AND GETDATE()
 			AND CAB.TIPMOV = 'V')
+	INNER JOIN TGFITE ITE ON (ITE.NUNOTA=CAB.NUNOTA)
+	LEFT JOIN TGFVEN VEN ON (PAR.CODVEND=VEN.CODVEND)
+	LEFT JOIN TGFTAB TAB ON (ITE.NUTAB = TAB.NUTAB)
 	LEFT JOIN AD_GRUPOSPARCEIROS G ON PAR.AD_CODGRUPO = G.CODGRUPO
 WHERE PAR.CODVEND not in ($P{CODVEND})
 AND PAR.CLIENTE = 'S'
 AND CAB.CODVEND = $P{CODVEND}
-GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND, VEN.APELIDO, G.CODGRUPO, G.NOME
+AND CAB.CODTIPOPER IN (900,901,931,934,935,937,936)
+GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND, VEN.APELIDO, G.CODGRUPO, G.NOME, ITE.NUTAB,ITE.CODPROD,CAB.DTNEG, ITE.QTDNEG,ITE.VLRTOT, CAB.CODEMP, ITE.NUNOTA, ITE.SEQUENCIA
 
 )
 SELECT TOP 1000
@@ -102,12 +170,24 @@ SELECT TOP 1000
 	 , ANTERIOR
      , ATUAL
 	 , META
+	 , DESCONTO
+	 , ACRESCIMO
+	 , CODEMP
+	 , VLRVENDA
+	 , DEVOLUCAO
+	 , PERC
   FROM (SELECT CODGRUPO
 			 , '(G) '+NOME AS NOME
 			 , VENDEDOR AS 'VENDEDOR'
 			 , SUM(ANTERIOR) AS 'ANTERIOR'
 			 , SUM(ATUAL) AS 'ATUAL'
 			 , META
+			 , SUM(DESCONTO) AS 'DESCONTO'
+			 , SUM(ACRESCIMO) AS 'ACRESCIMO'
+			 , SUM(VLRVENDA) AS 'VLRVENDA'
+			 , SUM (DEVOLUCAO) AS 'DEVOLUCAO'
+			 , CODEMP
+			 , (1-(SUM(ATUAL)/CASE WHEN SUM(VLRVENDA) = 0 THEN SUM(ATUAL) ELSE SUM(VLRVENDA) END))*-100 AS PERC
 		  FROM X
 		 WHERE CODGRUPO > 0
 		   AND 'P' = 'G'
@@ -115,6 +195,7 @@ SELECT TOP 1000
 				, NOME
 				, VENDEDOR
 				, META
+				, CODEMP
 
 		 UNION ALL
 		SELECT CODPARC
@@ -123,7 +204,13 @@ SELECT TOP 1000
 			 , SUM(ANTERIOR) AS 'ANTERIOR'
 			 , SUM(ATUAL) AS 'ATUAL'
 			 , META
-
+			 , SUM(DESCONTO) AS 'DESCONTO'
+			 , SUM(ACRESCIMO) AS 'ACRESCIMO'
+			 , SUM(VLRVENDA) AS 'VLRVENDA'
+			 , SUM(DEVOLUCAO) AS 'DEVOLUCAO'
+			 , CODEMP
+			 , (1-(/*SUM(ATUAL)*/CASE WHEN SUM(ATUAL) <= 0 THEN 1 ELSE SUM(ATUAL) END
+			 /CASE WHEN SUM(VLRVENDA) = 0 THEN (CASE WHEN SUM(ATUAL) <= 0 THEN 1 ELSE SUM(ATUAL) END) ELSE SUM(VLRVENDA) END))*-100 AS PERC
 		  FROM X
 		 WHERE ((CODGRUPO = 0
 		   AND 'P' = 'G')
@@ -131,7 +218,9 @@ SELECT TOP 1000
 		 GROUP BY RAZAOSOCIAL
 				, CODPARC
 				, VENDEDOR
-				, META) Z
+				, META
+				, CODEMP
+				) Z
 ORDER BY Z.ATUAL DESC]]>
 	</queryString>
 	<field name="CODGRUPO" class="java.lang.Integer"/>
@@ -140,17 +229,38 @@ ORDER BY Z.ATUAL DESC]]>
 	<field name="ANTERIOR" class="java.lang.Double"/>
 	<field name="ATUAL" class="java.lang.Double"/>
 	<field name="META" class="java.lang.Double"/>
+	<field name="DESCONTO" class="java.lang.Double"/>
+	<field name="ACRESCIMO" class="java.lang.Double"/>
+	<field name="CODEMP" class="java.lang.Short"/>
+	<field name="VLRVENDA" class="java.lang.Double"/>
+	<field name="DEVOLUCAO" class="java.lang.Double"/>
+	<field name="PERC" class="java.lang.Double"/>
 	<variable name="ATUAL-1" class="java.lang.Double" calculation="Sum">
 		<variableExpression><![CDATA[$F{ATUAL}]]></variableExpression>
 	</variable>
 	<variable name="ANTERIOR-1" class="java.lang.Double" calculation="Sum">
 		<variableExpression><![CDATA[$F{ANTERIOR}]]></variableExpression>
 	</variable>
+	<variable name="VLRTOT_1" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{ATUAL}]]></variableExpression>
+	</variable>
+	<variable name="DESCONTO_1" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{DESCONTO}]]></variableExpression>
+	</variable>
+	<variable name="ACRESCIMO_1" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{ACRESCIMO}]]></variableExpression>
+	</variable>
+	<variable name="PERC_1" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{PERC}]]></variableExpression>
+	</variable>
+	<variable name="DEVOLUCAO_1" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{DEVOLUCAO}]]></variableExpression>
+	</variable>
 	<background>
 		<band splitType="Stretch"/>
 	</background>
 	<pageHeader>
-		<band height="74">
+		<band height="76">
 			<image onErrorType="Icon">
 				<reportElement key="image-1" x="7" y="2" width="84" height="40"/>
 				<imageExpression class="java.lang.String"><![CDATA["https://sistema.realonibus.com.br//mge/image/logocliente/logo.png"]]></imageExpression>
@@ -201,94 +311,145 @@ ORDER BY Z.ATUAL DESC]]>
 				<reportElement x="0" y="42" width="555" height="1"/>
 			</line>
 			<staticText>
-				<reportElement x="0" y="44" width="556" height="28"/>
-				<textElement textAlignment="Center" verticalAlignment="Top">
-					<font size="8" isBold="true"/>
+				<reportElement x="1" y="43" width="556" height="29"/>
+				<textElement verticalAlignment="Top">
+					<font size="7" isBold="true"/>
 				</textElement>
-				<text><![CDATA[* Este relatorio esta ordnado por valor "ATUAL" e também esta considerando as vendas da carteira de Clientes  e fora da carteira de clientes. ]]></text>
+				<text><![CDATA[* Este relatorio esta ordenado por valor "R$ Total" e também esta considerando as vendas da carteira de Clientes  e fora da carteira de clientes.
+* % PERC = ((Desconto - Acrescimo) / (R$ Total + Desconto - Acrescimo)) *100]]></text>
 			</staticText>
 		</band>
 	</pageHeader>
 	<columnHeader>
-		<band height="20">
+		<band height="26">
 			<staticText>
-				<reportElement x="234" y="4" width="76" height="15" forecolor="#000000"/>
+				<reportElement x="217" y="0" width="58" height="26" forecolor="#000000"/>
 				<box>
 					<bottomPen lineWidth="0.5"/>
 				</box>
-				<textElement textAlignment="Center" verticalAlignment="Bottom">
-					<font size="7"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
 				</textElement>
 				<text><![CDATA[VENDEDOR]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="355" y="4" width="59" height="15" forecolor="#000000"/>
+				<reportElement x="319" y="0" width="47" height="26" forecolor="#000000"/>
 				<box>
 					<bottomPen lineWidth="0.5"/>
 				</box>
-				<textElement textAlignment="Right" verticalAlignment="Bottom">
-					<font size="7"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
 				</textElement>
-				<text><![CDATA[ATUAL]]></text>
+				<text><![CDATA[R$ Total]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="310" y="4" width="43" height="15" forecolor="#000000"/>
+				<reportElement x="275" y="0" width="43" height="26" forecolor="#000000"/>
 				<box>
 					<bottomPen lineWidth="0.5"/>
 				</box>
-				<textElement textAlignment="Right" verticalAlignment="Bottom">
-					<font size="7"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
 				</textElement>
-				<text><![CDATA[ANTERIOR]]></text>
+				<text><![CDATA[ R$ Total mês anterior]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="67" y="4" width="167" height="15" forecolor="#000000"/>
+				<reportElement x="79" y="0" width="138" height="26" forecolor="#000000"/>
 				<box>
 					<bottomPen lineWidth="0.5"/>
 				</box>
-				<textElement textAlignment="Center" verticalAlignment="Bottom">
-					<font size="7"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
 				</textElement>
 				<text><![CDATA[NOME]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="3" y="4" width="64" height="15" forecolor="#000000"/>
+				<reportElement x="39" y="0" width="40" height="26" forecolor="#000000"/>
 				<box>
 					<bottomPen lineWidth="0.5"/>
 				</box>
-				<textElement verticalAlignment="Bottom">
-					<font size="7"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
 				</textElement>
 				<text><![CDATA[CODPARC]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="416" y="0" width="48" height="26" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[DESCONTO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="517" y="0" width="38" height="26" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PERC]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="464" y="0" width="53" height="26" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ACRESCIMO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1" y="0" width="38" height="26" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CODEMP]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="366" y="0" width="50" height="26" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[DEVOLUCAO]]></text>
 			</staticText>
 		</band>
 	</columnHeader>
 	<detail>
 		<band height="17" splitType="Prevent">
 			<textField pattern="#,##0.00">
-				<reportElement x="356" y="2" width="59" height="15"/>
+				<reportElement x="319" y="1" width="48" height="15"/>
 				<box rightPadding="2"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
-					<font size="7"/>
+					<font size="7" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.lang.Double"><![CDATA[$F{ATUAL}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="234" y="1" width="76" height="15"/>
+				<reportElement x="217" y="2" width="58" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="7"/>
+					<font size="6"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{VENDEDOR}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="67" y="2" width="167" height="15"/>
+				<reportElement x="79" y="2" width="138" height="15"/>
 				<textElement verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{NOME}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="310" y="2" width="43" height="15"/>
+				<reportElement x="276" y="1" width="43" height="15"/>
 				<box rightPadding="2"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="7"/>
@@ -296,16 +457,55 @@ ORDER BY Z.ATUAL DESC]]>
 				<textFieldExpression class="java.lang.Double"><![CDATA[$F{ANTERIOR}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="3" y="2" width="64" height="15"/>
+				<reportElement x="39" y="2" width="40" height="15"/>
 				<textElement verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
 				<textFieldExpression class="java.lang.Integer"><![CDATA[$F{CODGRUPO}]]></textFieldExpression>
 			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="464" y="1" width="53" height="15"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{ACRESCIMO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="410" y="1" width="54" height="15"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{DESCONTO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00 &apos;%&apos;">
+				<reportElement x="517" y="1" width="39" height="15"/>
+				<box rightPadding="0"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{PERC}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="2" width="39" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Short"><![CDATA[$F{CODEMP}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="367" y="1" width="43" height="15"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{DEVOLUCAO}]]></textFieldExpression>
+			</textField>
 		</band>
 	</detail>
 	<summary>
-		<band height="23">
+		<band height="44">
 			<line>
 				<reportElement x="1" y="3" width="555" height="1"/>
 				<graphicElement>
@@ -313,47 +513,100 @@ ORDER BY Z.ATUAL DESC]]>
 				</graphicElement>
 			</line>
 			<textField pattern="#,##0.00" isBlankWhenNull="false">
-				<reportElement mode="Transparent" x="359" y="4" width="57" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<reportElement mode="Transparent" x="322" y="5" width="47" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
 				<box>
 					<topPen lineWidth="0.5"/>
 				</box>
 				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
-					<font fontName="SansSerif" size="8" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<font fontName="SansSerif" size="7" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 				</textElement>
 				<textFieldExpression class="java.lang.Double"><![CDATA[$V{ATUAL-1}]]></textFieldExpression>
 			</textField>
-			<textField pattern="#,##0.00" isBlankWhenNull="false">
-				<reportElement mode="Transparent" x="299" y="4" width="58" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
-				<box>
-					<topPen lineWidth="0.5"/>
-				</box>
-				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
-					<font fontName="SansSerif" size="8" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
-				</textElement>
-				<textFieldExpression class="java.lang.Double"><![CDATA[$V{ANTERIOR-1}]]></textFieldExpression>
-			</textField>
 			<staticText>
-				<reportElement x="2" y="4" width="97" height="15"/>
-				<textElement textAlignment="Center" verticalAlignment="Top">
-					<font size="10" isBold="true"/>
+				<reportElement x="1" y="5" width="90" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="10" isBold="true" isUnderline="true"/>
 				</textElement>
 				<text><![CDATA[META FALTANTE]]></text>
 			</staticText>
 			<textField pattern="#,##0.00">
-				<reportElement x="99" y="4" width="65" height="15"/>
+				<reportElement x="91" y="4" width="65" height="20"/>
 				<box rightPadding="2"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="10" isBold="true"/>
 				</textElement>
-				<textFieldExpression class="java.lang.Double"><![CDATA[$F{META}-$V{ATUAL-1}]]></textFieldExpression>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{META}-$V{ATUAL-1}+$V{DEVOLUCAO_1}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00 %">
-				<reportElement x="164" y="4" width="65" height="15"/>
+				<reportElement x="156" y="4" width="65" height="20"/>
 				<box rightPadding="2"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="10" isBold="true"/>
 				</textElement>
-				<textFieldExpression class="java.lang.Double"><![CDATA[((($F{META}-$V{ATUAL-1})*0.01)/$F{META}/0.01)]]></textFieldExpression>
+				<textFieldExpression class="java.lang.Double"><![CDATA[((($F{META}-$V{ATUAL-1}+$V{DEVOLUCAO_1})*0.01)/$F{META}/0.01)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="221" y="4" width="54" height="20"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="10" isBold="true" isUnderline="true"/>
+				</textElement>
+				<text><![CDATA[VENDAS]]></text>
+			</staticText>
+			<textField pattern="#,##0.00 &apos;%&apos;" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="517" y="5" width="38" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[(($V{DESCONTO_1}-$V{ACRESCIMO_1})/($V{VLRTOT_1}+$V{DESCONTO_1}-$V{ACRESCIMO_1}))*100*(-1)]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="464" y="5" width="53" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$V{ACRESCIMO_1}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="410" y="5" width="54" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$V{DESCONTO_1}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="275" y="5" width="47" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$V{ANTERIOR-1}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="369" y="5" width="43" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$V{DEVOLUCAO_1}]]></textFieldExpression>
 			</textField>
 		</band>
 	</summary>
