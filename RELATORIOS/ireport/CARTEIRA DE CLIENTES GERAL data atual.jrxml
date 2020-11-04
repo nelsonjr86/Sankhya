@@ -23,14 +23,14 @@ AND TGFMET.CODVEND=CAB.CODVEND) AS 'META'
 
 FROM TGFPAR PAR
 	INNER JOIN TGFCAB CAB ON (CAB.CODPARC=PAR.CODPARC
-			AND CONVERT(DATE,CAB.DTNEG) BETWEEN DATEADD(MONTH, -1, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 1, 0)) AND DATEADD(MONTH,0,DATEADD(DAY, -2, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 1, 0)))
+			AND CONVERT(DATE,CAB.DTNEG) BETWEEN DATEADD(MONTH, -1, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)) AND DATEADD(MONTH,0,DATEADD(DAY, -1, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)))
 			AND CAB.TIPMOV = 'V')
 	INNER JOIN TGFITE ITE ON (ITE.NUNOTA=CAB.NUNOTA)
 	LEFT JOIN TGFVEN VEN ON (CAB.CODVEND=VEN.CODVEND)
 	LEFT JOIN TGFTAB TAB ON (ITE.NUTAB = TAB.NUTAB)
 	LEFT JOIN AD_GRUPOSPARCEIROS G ON PAR.AD_CODGRUPO = G.CODGRUPO
 WHERE PAR.CLIENTE = 'S'
-AND CAB.CODTIPOPER IN (900,901,911,931,934,935,937,936,942,944,1042,1043)
+AND CAB.CODTIPOPER IN (900,901,931,934,935,937,936)
 GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND, ITE.NUTAB,ITE.CODPROD,CAB.DTNEG, ITE.QTDNEG,ITE.VLRTOT, CAB.CODEMP, CAB.CODVEND
 
 UNION ALL /*DEVOLUÇÃO*/
@@ -50,17 +50,16 @@ AND TGFMET.CODVEND=CAB.CODVEND) AS 'META'
 	 , CAB.CODEMP
 
 FROM TGFPAR PAR
-	INNER JOIN TGFCAB CAB ON (CAB.CODPARC=PAR.CODPARC AND CAB.TIPMOV = 'D'
-			AND CONVERT(DATE,CAB.DTENTSAI) BETWEEN DATEADD(MONTH, -1, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)) AND DATEADD(MONTH,0,DATEADD(DAY, -1, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0))))
-			--AND CONVERT(DATE,CAB.DTMOV) BETWEEN DATEADD(MONTH, -0, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)) AND GETDATE())
+	INNER JOIN TGFCAB CAB ON (CAB.CODPARC=PAR.CODPARC
+			AND CONVERT(DATE,CAB.DTMOV) BETWEEN DATEADD(MONTH, -0, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)) AND GETDATE())
 	INNER JOIN TGFITE ITE ON (ITE.NUNOTA=CAB.NUNOTA)
 	LEFT JOIN TGFVEN VEN ON (PAR.CODVEND=VEN.CODVEND)
 	LEFT JOIN TGFTAB TAB ON (ITE.NUTAB = TAB.NUTAB)
 	LEFT JOIN AD_GRUPOSPARCEIROS G ON PAR.AD_CODGRUPO = G.CODGRUPO
-WHERE --CAB.CODVEND in (PAR.CODVEND)AND
-PAR.CLIENTE = 'S'
---AND CAB.CODVEND = PAR.CODVEND
-AND CAB.CODTIPOPER IN (1000,1001,1007,1009,792,1011,1012,1042,1043)
+WHERE CAB.CODVEND in (PAR.CODVEND)
+AND PAR.CLIENTE = 'S'
+AND CAB.CODVEND = PAR.CODVEND
+AND CAB.CODTIPOPER IN (1000,1001,1007,1009,792,1011,1012)
 GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND, ITE.NUTAB,ITE.CODPROD,CAB.DTNEG, ITE.QTDNEG,ITE.VLRTOT, CAB.CODEMP, CAB.CODVEND
 
 UNION ALL /*ATUAL VENDAS*/
@@ -81,15 +80,14 @@ AND TGFMET.CODVEND=CAB.CODVEND) AS 'META'
 
 FROM TGFPAR PAR
 	INNER JOIN TGFCAB CAB ON (CAB.CODPARC=PAR.CODPARC
-			AND CONVERT(DATE,CAB.DTNEG) BETWEEN DATEADD(MONTH, -1, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)) AND DATEADD(MONTH,0,DATEADD(DAY, -1, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)))
-			--AND CONVERT(DATE,CAB.DTNEG) BETWEEN DATEADD(MONTH, -1, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)) AND GETDATE()
+			AND CONVERT(DATE,CAB.DTNEG) BETWEEN DATEADD(MONTH, -0, DateAdd(mm, DateDiff(mm,0,GETDATE()) - 0, 0)) AND GETDATE()
 			AND CAB.TIPMOV = 'V')
 	INNER JOIN TGFITE ITE ON (ITE.NUNOTA=CAB.NUNOTA)
 	LEFT JOIN TGFVEN VEN ON (CAB.CODVEND=VEN.CODVEND)
 	LEFT JOIN TGFTAB TAB ON (ITE.NUTAB = TAB.NUTAB)
 	LEFT JOIN AD_GRUPOSPARCEIROS G ON PAR.AD_CODGRUPO = G.CODGRUPO
 WHERE PAR.CLIENTE = 'S'
-AND CAB.CODTIPOPER IN (900,901,911,931,934,935,937,936,942,944,1042,1043)
+AND CAB.CODTIPOPER IN (900,901,931,934,935,937,936)
 GROUP BY PAR.CODPARC, PAR.RAZAOSOCIAL, VEN.CODVEND, ITE.NUTAB,ITE.CODPROD,CAB.DTNEG, ITE.QTDNEG,ITE.VLRTOT, CAB.CODEMP, CAB.CODVEND, ITE.NUNOTA, ITE.SEQUENCIA
 
 )
@@ -223,7 +221,7 @@ ORDER BY Z.VENDEDOR,Z.ATUAL DESC]]>
 	<columnHeader>
 		<band height="26">
 			<staticText>
-				<reportElement x="201" y="0" width="47" height="26" forecolor="#000000"/>
+				<reportElement x="319" y="0" width="47" height="26" forecolor="#000000"/>
 				<box>
 					<bottomPen lineWidth="0.5"/>
 				</box>
@@ -233,7 +231,7 @@ ORDER BY Z.VENDEDOR,Z.ATUAL DESC]]>
 				<text><![CDATA[R$ Total]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="157" y="0" width="43" height="26" forecolor="#000000"/>
+				<reportElement x="275" y="0" width="43" height="26" forecolor="#000000"/>
 				<box>
 					<bottomPen lineWidth="0.5"/>
 				</box>
@@ -243,7 +241,7 @@ ORDER BY Z.VENDEDOR,Z.ATUAL DESC]]>
 				<text><![CDATA[ R$ Total mês anterior]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="298" y="0" width="48" height="26" forecolor="#000000"/>
+				<reportElement x="416" y="0" width="48" height="26" forecolor="#000000"/>
 				<box>
 					<bottomPen lineWidth="0.5"/>
 				</box>
@@ -253,7 +251,7 @@ ORDER BY Z.VENDEDOR,Z.ATUAL DESC]]>
 				<text><![CDATA[DESCONTO]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="399" y="0" width="38" height="26" forecolor="#000000"/>
+				<reportElement x="517" y="0" width="38" height="26" forecolor="#000000"/>
 				<box>
 					<bottomPen lineWidth="0.5"/>
 				</box>
@@ -263,7 +261,7 @@ ORDER BY Z.VENDEDOR,Z.ATUAL DESC]]>
 				<text><![CDATA[PERC]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="346" y="0" width="53" height="26" forecolor="#000000"/>
+				<reportElement x="464" y="0" width="53" height="26" forecolor="#000000"/>
 				<box>
 					<bottomPen lineWidth="0.5"/>
 				</box>
@@ -283,7 +281,7 @@ ORDER BY Z.VENDEDOR,Z.ATUAL DESC]]>
 				<text><![CDATA[CODVEND]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="248" y="0" width="50" height="26" forecolor="#000000"/>
+				<reportElement x="366" y="0" width="50" height="26" forecolor="#000000"/>
 				<box>
 					<bottomPen lineWidth="0.5"/>
 				</box>
@@ -302,22 +300,12 @@ ORDER BY Z.VENDEDOR,Z.ATUAL DESC]]>
 				</textElement>
 				<text><![CDATA[VENDEDOR]]></text>
 			</staticText>
-			<staticText>
-				<reportElement x="438" y="0" width="47" height="26" forecolor="#000000"/>
-				<box>
-					<bottomPen lineWidth="0.5"/>
-				</box>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[R$ Resultado]]></text>
-			</staticText>
 		</band>
 	</columnHeader>
 	<detail>
 		<band height="17" splitType="Prevent">
 			<textField pattern="#,##0.00">
-				<reportElement x="201" y="1" width="48" height="15"/>
+				<reportElement x="319" y="1" width="48" height="15"/>
 				<box rightPadding="2"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
@@ -325,7 +313,7 @@ ORDER BY Z.VENDEDOR,Z.ATUAL DESC]]>
 				<textFieldExpression class="java.lang.Double"><![CDATA[$F{ATUAL}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="158" y="1" width="43" height="15"/>
+				<reportElement x="276" y="1" width="43" height="15"/>
 				<box rightPadding="2"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="7"/>
@@ -333,7 +321,7 @@ ORDER BY Z.VENDEDOR,Z.ATUAL DESC]]>
 				<textFieldExpression class="java.lang.Double"><![CDATA[$F{ANTERIOR}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="346" y="1" width="53" height="15"/>
+				<reportElement x="464" y="1" width="53" height="15"/>
 				<box rightPadding="2"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="7"/>
@@ -341,7 +329,7 @@ ORDER BY Z.VENDEDOR,Z.ATUAL DESC]]>
 				<textFieldExpression class="java.lang.Double"><![CDATA[$F{ACRESCIMO}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="292" y="1" width="54" height="15"/>
+				<reportElement x="410" y="1" width="54" height="15"/>
 				<box rightPadding="2"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="7"/>
@@ -349,7 +337,7 @@ ORDER BY Z.VENDEDOR,Z.ATUAL DESC]]>
 				<textFieldExpression class="java.lang.Double"><![CDATA[$F{DESCONTO}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00 &apos;%&apos;">
-				<reportElement x="399" y="1" width="39" height="15"/>
+				<reportElement x="517" y="1" width="39" height="15"/>
 				<box rightPadding="0"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="7"/>
@@ -364,7 +352,7 @@ ORDER BY Z.VENDEDOR,Z.ATUAL DESC]]>
 				<textFieldExpression class="java.lang.Short"><![CDATA[$F{CODVEND}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="249" y="1" width="43" height="15"/>
+				<reportElement x="367" y="1" width="43" height="15"/>
 				<box rightPadding="2"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="7"/>
@@ -377,14 +365,6 @@ ORDER BY Z.VENDEDOR,Z.ATUAL DESC]]>
 					<font size="7"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{VENDEDOR}]]></textFieldExpression>
-			</textField>
-			<textField pattern="#,##0.00">
-				<reportElement x="438" y="1" width="48" height="15"/>
-				<box rightPadding="2"/>
-				<textElement textAlignment="Right" verticalAlignment="Middle">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<textFieldExpression class="java.lang.Double"><![CDATA[$F{ATUAL}+$F{DEVOLUCAO}]]></textFieldExpression>
 			</textField>
 		</band>
 	</detail>
