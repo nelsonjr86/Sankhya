@@ -21,27 +21,94 @@
 		<parameterDescription><![CDATA[Cód. Empresa]]></parameterDescription>
 	</parameter>
 	<queryString>
-		<![CDATA[SELECT DISTINCT P.CODPROD, P.REFERENCIA, P.DESCRPROD, G.CURVA, G.CODEMP, EM.NOMEFANTASIA
-FROM TGFPRO P INNER JOIN TGFITE I ON (I.CODPROD=P.CODPROD)
-			  INNER JOIN TGFCAB C ON (I.NUNOTA=C.NUNOTA)
-			  INNER JOIN AD_CURVA_GIRO G ON (I.CODPROD=G.CODPROD AND G.CODEMP=I.CODEMP)
-			  INNER JOIN TGFEST E ON (E.CODPROD=P.CODPROD AND G.CODEMP = E.CODEMP)
-			  INNER JOIN TSIEMP EM ON (C.CODEMP=EM.CODEMP)
-WHERE C.CODEMP = $P{CODEMP} AND
-P.USOPROD = 'R' AND
-C.TIPMOV = 'C' AND
-E.ESTOQUE > 0 AND
-C.CODTIPOPER NOT IN (708,787) AND
- G.CURVA = $P{CURVA} AND
-C.DTENTSAI BETWEEN $P{DTINI} AND $P{DTFIN}
-ORDER BY G.CURVA, P.REFERENCIA]]>
+		<![CDATA[WITH X AS(
+SELECT /*COMPRAS POR CURVA*/
+* FROM (
+	SELECT row_number() OVER (ORDER BY PRODUTO ASC,DATA_ENTRADA DESC,NUNOTA DESC) AS row_number, *
+	FROM (
+
+		SELECT distinct
+			EM.NOMEFANTASIA,
+			RTRIM(LTRIM(PAR.NOMEPARC)) AS 'FORN',
+			CAB.DTENTSAI AS 'DATA_ENTRADA',
+			PRO.REFERENCIA AS 'PRODUTO',
+			PRO.DESCRPROD AS 'DESCRICAO',
+			CAB.NUMNOTA AS 'NF',
+			CAB.NUNOTA AS 'NUNOTA',
+			G.CURVA,
+			ITE.VLRUNIT - ITE.VLRDESC/ITE.QTDNEG  AS 'V_UNIT',
+			ITE.QTDNEG,
+			CASE WHEN Cab.VLRFRETE > 0 THEN((((((ITE.VLRTOT)*100)/(SELECT SUM(I.VLRTOT) FROM TGFITE I WHERE I.NUNOTA=CAB.NUNOTA)/100)*Cab.VLRFRETE)/ITE.QTDNEG)) END  AS 'FRETE',
+			ALIQIPI AS 'IPI',
+			ISNULL((SELECT DISTINCT (SUM(VALOR)/ITE.QTDNEG) FROM TGFDIN WHERE NUNOTA=ITE.NUNOTA AND CODIMP = 6 AND SEQUENCIA=ITE.SEQUENCIA AND VALOR <> 0),0)+
+			ISNULL((SELECT DISTINCT (SUM(VALOR)/ITE.QTDNEG) FROM TGFDIN WHERE NUNOTA=ITE.NUNOTA AND CODIMP = 7 AND SEQUENCIA=ITE.SEQUENCIA AND VALOR <> 0),0) AS 'PISCOFINS',
+			CASE WHEN ITE.VLRSUBST = 0 THEN 0 WHEN ITE.VLRSUBST >0 THEN (ITE.VLRSUBST/ITE.QTDNEG) END  AS 'ST',
+			ISNULL((SELECT DISTINCT (AD_DIFST/ITE.QTDNEG) FROM TGFDIN WHERE NUNOTA=ITE.NUNOTA AND CODIMP=2 AND SEQUENCIA=ITE.SEQUENCIA),0)  AS 'DIF_ST',
+			CASE WHEN (CAB.VLRDESTAQUE+CAB.VLRSEG+CAB.VLROUTROS) = 0 THEN 0 ELSE (((((ITE.VLRUNIT*ITE.QTDNEG)*100)/(SELECT SUM(VLRUNIT*QTDNEG) FROM TGFITE WHERE NUNOTA = CAB.NUNOTA))/100)*(CAB.VLRDESTAQUE+CAB.VLRSEG+CAB.VLROUTROS))/ITE.QTDNEG END AS VLROUTROS,
+			CASE WHEN CAB.VLRFRETE > 0 THEN (ITE.VLRUNIT- ITE.VLRDESC/ITE.QTDNEG+((ITE.VLRUNIT- ITE.VLRDESC/ITE.QTDNEG- ITE.VLRDESC/ITE.QTDNEG+ITE.VLRIPI/ITE.QTDNEG)*(((((((ITE.VLRTOT))/(SELECT SUM(I.VLRTOT) FROM TGFITE I WHERE I.NUNOTA=CAB.NUNOTA)/100)*Cab.VLRFRETE)/ITE.QTDNEG))))+ITE.VLRUNIT*(ALIQIPI*0.01))
+			WHEN (ITE.VLRUNIT- ITE.VLRDESC/ITE.QTDNEG +((ITE.VLRUNIT+ITE.VLRUNIT*(ALIQIPI*0.01)))+ITE.VLRUNIT- ITE.VLRDESC/ITE.QTDNEG*(ALIQIPI*0.01)) > 0 THEN (ITE.VLRUNIT- ITE.VLRDESC/ITE.QTDNEG+ITE.VLRUNIT- ITE.VLRDESC/ITE.QTDNEG*(ALIQIPI*0.01))
+			ELSE ITE.VLRUNIT - ITE.VLRDESC/ITE.QTDNEG END + CASE WHEN (CAB.VLRDESTAQUE+CAB.VLRSEG+CAB.VLROUTROS) = 0 THEN 0 ELSE (((((ITE.VLRUNIT*ITE.QTDNEG)*100)/(SELECT SUM(VLRUNIT*QTDNEG) FROM TGFITE WHERE NUNOTA = CAB.NUNOTA))/100)*(CAB.VLRDESTAQUE+CAB.VLRSEG+CAB.VLROUTROS))/ITE.QTDNEG END AS 'VALOR_TOTAL'
+			,CASE WHEN G.CODEMP IN (1,6,8,9,11,12) THEN SANKHYA.SNK_PRECO(0,PRO.CODPROD) WHEN G.CODEMP IN (2,3,4,7) THEN SANKHYA.SNK_PRECO(1,PRO.CODPROD) WHEN G.CODEMP IN (22) THEN SANKHYA.SNK_PRECO(100,PRO.CODPROD) WHEN G.CODEMP IN (26) THEN SANKHYA.SNK_PRECO(200,PRO.CODPROD) END  AS 'VALOR_VENDA'
+			, EST.ESTOQUE
+
+		FROM TGFCAB CAB
+		INNER JOIN TGFITE ITE ON (ITE.NUNOTA = CAB.NUNOTA)
+		INNER JOIN TGFPAR PAR ON (PAR.CODPARC = CAB.CODPARC)
+		INNER JOIN TGFPRO PRO ON (PRO.CODPROD = ITE.CODPROD)
+		INNER JOIN TSIEMP EM ON (CAB.CODEMP=EM.CODEMP)
+		INNER JOIN TGFEST EST ON (ITE.CODPROD=EST.CODPROD AND CAB.CODEMP=EST.CODEMP)
+		LEFT JOIN AD_CURVA_GIRO G ON (ITE.CODPROD=G.CODPROD AND CAB.CODEMP=G.CODEMP)
+
+		WHERE CAB.TIPMOV = 'C'
+		AND CAB.STATUSNOTA = 'L'
+		AND CAB.CODTIPOPER NOT IN (730,717,732,792,777,791,708)
+		AND CAB.CODEMP = $P{CODEMP}
+		AND G.CURVA = $P{CURVA}
+		AND EST.ESTOQUE > 0
+		AND PRO.USOPROD = 'R'
+		AND ite.VLRUNIT > 0
+		AND CAB.DTENTSAI BETWEEN $P{DTINI} AND $P{DTFIN}
+		AND CAB.DTENTSAI =
+			(SELECT MAX(C.DTENTSAI) AS 'DATA_ENTRADA'
+				FROM TGFCAB C
+				INNER JOIN TGFITE I ON (I.NUNOTA = C.NUNOTA)
+				INNER JOIN TGFPAR PA ON (PA.CODPARC = C.CODPARC)
+				INNER JOIN TGFPRO P ON (P.CODPROD = I.CODPROD)
+				INNER JOIN TGFEST E ON (I.CODPROD=E.CODPROD AND C.CODEMP=E.CODEMP)
+				LEFT JOIN AD_CURVA_GIRO GIR ON (I.CODPROD=GIR.CODPROD AND C.CODEMP=GIR.CODEMP)
+				WHERE C.TIPMOV = 'C'
+				AND C.STATUSNOTA = 'L'
+				AND P.USOPROD = 'R'
+				AND C.CODTIPOPER NOT IN (730,717,732,792,777,791,708)
+				AND C.CODEMP = CAB.CODEMP
+				AND P.REFERENCIA = PRO.REFERENCIA
+				GROUP BY P.REFERENCIA
+			)
+		/*--AND (
+		--	(LEN('078-dx01.8') > 4 AND PRO.REFERENCIA LIKE '078-dx01.8') OR
+		--	(LEN('078-dx01.8') <= 4 AND PRO.REFERENCIA LIKE '078-dx01.8'+'%')
+		--)*/
+	) SUB
+) TabelaNumerada
+WHERE row_number BETWEEN 0 AND 1000000)
+SELECT PRODUTO, DESCRICAO, CURVA, ESTOQUE, VALOR_VENDA, NOMEFANTASIA,
+		CASE WHEN FRETE IS NULL THEN (V_UNIT-PISCOFINS+((V_UNIT-PISCOFINS)*IPI/100)+0+VLROUTROS+ST+DIF_ST)
+			 ELSE  (V_UNIT-PISCOFINS+((V_UNIT-PISCOFINS)*IPI/100)+FRETE+VLROUTROS+ST+DIF_ST)
+		END	AS 'VALOR_COMPRA',
+		CASE WHEN FRETE IS NULL THEN (((VALOR_VENDA/(V_UNIT-PISCOFINS+((V_UNIT-PISCOFINS)*IPI/100)+0+VLROUTROS+ST+DIF_ST)))-1)
+			 ELSE  (((VALOR_VENDA/(V_UNIT-PISCOFINS+((V_UNIT-PISCOFINS)*IPI/100)+FRETE+VLROUTROS+ST+DIF_ST)))-1)
+		END	AS 'MARGEM'
+FROM X
+ORDER BY PRODUTO]]>
 	</queryString>
-	<field name="CODPROD" class="java.lang.Integer"/>
-	<field name="REFERENCIA" class="java.lang.String"/>
-	<field name="DESCRPROD" class="java.lang.String"/>
+	<field name="PRODUTO" class="java.lang.String"/>
+	<field name="DESCRICAO" class="java.lang.String"/>
 	<field name="CURVA" class="java.lang.String"/>
-	<field name="CODEMP" class="java.lang.Integer"/>
+	<field name="ESTOQUE" class="java.lang.Double"/>
+	<field name="VALOR_VENDA" class="java.lang.Double"/>
 	<field name="NOMEFANTASIA" class="java.lang.String"/>
+	<field name="VALOR_COMPRA" class="java.lang.Double"/>
+	<field name="MARGEM" class="java.lang.Double"/>
 	<pageHeader>
 		<band height="50">
 			<image onErrorType="Icon">
@@ -140,7 +207,7 @@ ORDER BY G.CURVA, P.REFERENCIA]]>
 	<columnHeader>
 		<band height="22">
 			<staticText>
-				<reportElement x="186" y="4" width="84" height="15" forecolor="#000000"/>
+				<reportElement x="186" y="4" width="51" height="15" forecolor="#000000"/>
 				<box>
 					<bottomPen lineWidth="1.0"/>
 				</box>
@@ -169,12 +236,52 @@ ORDER BY G.CURVA, P.REFERENCIA]]>
 				</textElement>
 				<text><![CDATA[REFERENCIA]]></text>
 			</staticText>
+			<staticText>
+				<reportElement x="237" y="4" width="59" height="15" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ESTOQUE]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="296" y="4" width="84" height="15" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[VALOR_VENDA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="380" y="4" width="84" height="15" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[VALOR_COMPRA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="464" y="4" width="84" height="15" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[MARGEM]]></text>
+			</staticText>
 		</band>
 	</columnHeader>
 	<detail>
 		<band height="19" splitType="Prevent">
 			<textField>
-				<reportElement x="185" y="2" width="85" height="15"/>
+				<reportElement x="185" y="2" width="52" height="15"/>
 				<box>
 					<bottomPen lineWidth="1.0"/>
 				</box>
@@ -191,7 +298,7 @@ ORDER BY G.CURVA, P.REFERENCIA]]>
 				<textElement verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
-				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRPROD}]]></textFieldExpression>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRICAO}]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="3" y="2" width="81" height="15"/>
@@ -201,7 +308,47 @@ ORDER BY G.CURVA, P.REFERENCIA]]>
 				<textElement verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
-				<textFieldExpression class="java.lang.String"><![CDATA[$F{REFERENCIA}]]></textFieldExpression>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{PRODUTO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0">
+				<reportElement x="237" y="2" width="59" height="15"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{ESTOQUE}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00 %">
+				<reportElement x="464" y="2" width="84" height="15"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{MARGEM}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="380" y="2" width="84" height="15"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{VALOR_COMPRA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="296" y="2" width="84" height="15"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{VALOR_VENDA}]]></textFieldExpression>
 			</textField>
 		</band>
 	</detail>
