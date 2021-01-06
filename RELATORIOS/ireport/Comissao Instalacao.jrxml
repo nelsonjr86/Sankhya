@@ -10,30 +10,39 @@
 		<parameterDescription><![CDATA[Data Final Instalação]]></parameterDescription>
 	</parameter>
 	<queryString>
-		<![CDATA[SELECT CODVEND, NOME, VLRUNITINS, QTDINS, VLRUNITINS * QTDINS AS VLRTOTINS
+		<![CDATA[SELECT CODVEND, NOME, TAMANHO, VLRUNITINS AS 'VLRUNITINS',SUM(QTDINS) AS 'QTDINS', (VLRUNITINS*SUM(QTDINS)) AS 'VLRTOTINS'
 FROM (
 SELECT TGFVEN.CODVEND, TGFVEN.APELIDO AS NOME,
-ISNULL(TGFVEN.AD_VLRCOMISSAOINSTALACAO,0) AS VLRUNITINS,
-SUM(CASE WHEN AD_PRODINS.CODINSTA1 = TGFVEN.CODVEND OR AD_PRODINS.CODINSTA2 = TGFVEN.CODVEND OR AD_PRODINS.CODINSTA3 = TGFVEN.CODVEND THEN 1 ELSE 0 END) AS QTDINS
+CASE WHEN AD_PRODINS.TAMANHO=1		 THEN 4
+	 WHEN AD_PRODINS.TAMANHO=2		 THEN 8
+	 WHEN AD_PRODINS.TAMANHO IS NULL THEN 0 END AS 'VLRUNITINS',
+
+CASE WHEN AD_PRODINS.TAMANHO=1		 THEN 'PEQUENO'
+	 WHEN AD_PRODINS.TAMANHO=2		 THEN 'GRANDE'
+	 WHEN AD_PRODINS.TAMANHO IS NULL THEN '' END AS 'TAMANHO',
+
+CASE WHEN AD_PRODINS.TAMANHO=1		 THEN 4 * AD_PRODINS.QTDINS
+	 WHEN AD_PRODINS.TAMANHO=2		 THEN 8 * AD_PRODINS.QTDINS
+	 WHEN AD_PRODINS.TAMANHO IS NULL THEN 0 * AD_PRODINS.QTDINS END AS 'VLRTOTINS',
+
+SUM(CASE WHEN AD_PRODINS.CODINSTA1 = TGFVEN.CODVEND OR AD_PRODINS.CODINSTA2 = TGFVEN.CODVEND OR AD_PRODINS.CODINSTA3 = TGFVEN.CODVEND THEN AD_PRODINS.QTDINS ELSE 0 END) AS QTDINS
 FROM TGFVEN, AD_INSPRO, AD_PRODINS
 WHERE AD_INSPRO.CODINS = AD_PRODINS.CODINS
 AND TGFVEN.TIPVEND = 'T'
+AND TGFVEN.ATIVO = 'S'
 AND AD_PRODINS.DTINSTA BETWEEN $P{P_DTI} AND $P{P_DTF}
-GROUP BY TGFVEN.CODVEND, TGFVEN.APELIDO, TGFVEN.AD_VLRCOMISSAOINSTALACAO
+GROUP BY TGFVEN.CODVEND, TGFVEN.APELIDO, TAMANHO,AD_PRODINS.QTDINS
 ) CONSULTA
+WHERE QTDINS >0
+GROUP BY CODVEND, NOME,TAMANHO,VLRUNITINS
 ORDER BY CODVEND]]>
 	</queryString>
 	<field name="CODVEND" class="java.lang.Short"/>
 	<field name="NOME" class="java.lang.String"/>
-	<field name="VLRUNITINS" class="java.lang.Double">
-		<fieldDescription><![CDATA[Vlr. Unit.]]></fieldDescription>
-	</field>
-	<field name="QTDINS" class="java.lang.Integer">
-		<fieldDescription><![CDATA[Qtd.]]></fieldDescription>
-	</field>
-	<field name="VLRTOTINS" class="java.lang.Double">
-		<fieldDescription><![CDATA[Vlr. Total]]></fieldDescription>
-	</field>
+	<field name="TAMANHO" class="java.lang.String"/>
+	<field name="VLRUNITINS" class="java.lang.Double"/>
+	<field name="QTDINS" class="java.lang.Double"/>
+	<field name="VLRTOTINS" class="java.lang.Double"/>
 	<pageHeader>
 		<band height="66" splitType="Stretch">
 			<textField isStretchWithOverflow="true" pattern="dd/MM/yyyy HH:mm:ss">
@@ -91,7 +100,7 @@ ORDER BY CODVEND]]>
 	<columnHeader>
 		<band height="20" splitType="Stretch">
 			<staticText>
-				<reportElement x="13" y="0" width="320" height="20"/>
+				<reportElement x="13" y="0" width="206" height="20"/>
 				<textElement/>
 				<text><![CDATA[Instalador]]></text>
 			</staticText>
@@ -110,19 +119,30 @@ ORDER BY CODVEND]]>
 				<textElement/>
 				<text><![CDATA[Vlr. Total]]></text>
 			</staticText>
+			<staticText>
+				<reportElement x="218" y="0" width="115" height="20"/>
+				<textElement/>
+				<text><![CDATA[Tamanho]]></text>
+			</staticText>
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="13" splitType="Stretch">
+		<band height="14" splitType="Stretch">
 			<textField>
-				<reportElement x="0" y="0" width="92" height="13"/>
+				<reportElement x="0" y="0" width="65" height="13"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
 				<textElement>
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression class="java.lang.Short"><![CDATA[$F{CODVEND}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="92" y="0" width="241" height="13"/>
+				<reportElement x="65" y="0" width="153" height="13"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
 				<textElement>
 					<font size="8"/>
 				</textElement>
@@ -130,24 +150,43 @@ ORDER BY CODVEND]]>
 			</textField>
 			<textField pattern="#,##0">
 				<reportElement x="418" y="0" width="62" height="13"/>
-				<textElement textAlignment="Right">
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement>
 					<font size="8"/>
 				</textElement>
-				<textFieldExpression class="java.lang.Integer"><![CDATA[$F{QTDINS}]]></textFieldExpression>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{QTDINS}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
 				<reportElement x="480" y="0" width="75" height="13"/>
-				<textElement textAlignment="Right">
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement>
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression class="java.lang.Double"><![CDATA[$F{VLRTOTINS}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
 				<reportElement x="333" y="0" width="85" height="13"/>
-				<textElement textAlignment="Right">
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement>
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression class="java.lang.Double"><![CDATA[$F{VLRUNITINS}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="219" y="0" width="114" height="13"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{TAMANHO}]]></textFieldExpression>
 			</textField>
 		</band>
 	</detail>
