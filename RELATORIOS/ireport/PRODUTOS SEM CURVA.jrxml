@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="relacao_materiais" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="CODEMP" class="java.lang.String">
+		<property name="nomeTabela" value="TSIEMP"/>
+		<property name="nomeCampo" value="CODEMP"/>
+		<parameterDescription><![CDATA[Cód. Empresa]]></parameterDescription>
+	</parameter>
+	<parameter name="REFERENCIA" class="java.lang.String">
+		<parameterDescription><![CDATA[REFERENCIA]]></parameterDescription>
+		<defaultValueExpression><![CDATA[$F{PRODUTO}]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[WITH X AS(
+SELECT /*ESTOQUE POR CURVA*/
+* FROM (
+	SELECT row_number() OVER (ORDER BY PRODUTO ASC) AS row_number, *
+	FROM (
+
+		SELECT distinct
+			PRO.REFERENCIA AS 'PRODUTO',
+			PRO.DESCRPROD AS 'DESCRICAO',
+			G.CURVA,
+			EST.ESTOQUE,
+			/*DADOS DA EMPRESA*/
+			/*REPLACE(GEM.LOGODANFE,'Repo://','/home/mgeweb/modelos/') AS LOGO,*/
+			CONCAT('/home/mgeweb/modelos/',GEM.LOGODANFE) AS 'LOGO'
+
+		FROM TGFPRO PRO
+		INNER JOIN TGFEST EST ON (PRO.CODPROD=EST.CODPROD)
+		INNER JOIN TSIEMP EM ON (EST.CODEMP=EM.CODEMP)
+		INNER JOIN TGFEMP GEM ON (EM.CODEMP = GEM.CODEMP)
+		LEFT JOIN AD_CURVA_GIRO G ON (PRO.CODPROD=G.CODPROD AND EM.CODEMP=G.CODEMP)
+
+		WHERE EST.CODEMP = $P{CODEMP}
+		AND G.CURVA IS NULL
+		AND EST.ESTOQUE > 0
+		AND PRO.USOPROD = 'R'
+		AND PRO.ATIVO = 'S'
+		AND (PRO.REFERENCIA LIKE $P{REFERENCIA}+'%'  OR $P{REFERENCIA} IS NULL)
+		AND (CASE WHEN $P{CODEMP} IN (SELECT CODEMP FROM TSIEMP WHERE CODEMPMATRIZ =(SELECT CODEMPMATRIZ FROM TSIEMP WHERE CODEMP = 1)) THEN PRO.AD_PROREAL
+	 WHEN $P{CODEMP} IN (SELECT CODEMP FROM TSIEMP WHERE CODEMPMATRIZ =(SELECT CODEMPMATRIZ FROM TSIEMP WHERE CODEMP = 22)) THEN PRO.AD_PROPAULISTA
+	 WHEN $P{CODEMP} IN (SELECT CODEMP FROM TSIEMP WHERE CODEMPMATRIZ =(SELECT CODEMPMATRIZ FROM TSIEMP WHERE CODEMP = 26)) THEN PRO.AD_CODSERVIBUS
+	 WHEN $P{CODEMP} IN (SELECT CODEMP FROM TSIEMP WHERE CODEMPMATRIZ =(SELECT CODEMPMATRIZ FROM TSIEMP WHERE CODEMP = 10)) THEN PRO.AD_GLASS
+	 WHEN $P{CODEMP} IN (SELECT CODEMP FROM TSIEMP WHERE CODEMPMATRIZ =(SELECT CODEMPMATRIZ FROM TSIEMP WHERE CODEMP = 40)) THEN PRO.AD_movatto
+	 WHEN $P{CODEMP} IN (SELECT CODEMP FROM TSIEMP WHERE CODEMPMATRIZ =(SELECT CODEMPMATRIZ FROM TSIEMP WHERE CODEMP = 27)) THEN PRO.AD_PROITAIPU END )='S'
+
+
+	) SUB
+) TabelaNumerada
+WHERE row_number BETWEEN 0 AND 1000000)
+SELECT PRODUTO, DESCRICAO, CURVA, ESTOQUE,LOGO
+FROM X
+ORDER BY CURVA,PRODUTO]]>
+	</queryString>
+	<field name="PRODUTO" class="java.lang.String"/>
+	<field name="DESCRICAO" class="java.lang.String"/>
+	<field name="CURVA" class="java.lang.String"/>
+	<field name="ESTOQUE" class="java.lang.Double"/>
+	<field name="LOGO" class="java.lang.String"/>
+	<pageHeader>
+		<band height="50">
+			<image onErrorType="Icon">
+				<reportElement key="image-1" x="7" y="2" width="84" height="40"/>
+				<imageExpression class="java.lang.String"><![CDATA[$F{LOGO}]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement x="119" y="2" width="179" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="13"/>
+				</textElement>
+				<text><![CDATA[PRODUTOS SEM CURVA]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="528" y="0" width="11" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="455" y="0" width="73" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Right" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Pág.:]]></text>
+			</staticText>
+			<textField evaluationTime="Report" pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="544" y="0" width="11" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="539" y="0" width="5" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[/]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="119" y="22" width="238" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="12" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="42" width="555" height="1"/>
+			</line>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="22">
+			<staticText>
+				<reportElement x="184" y="5" width="51" height="15" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CURVA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="235" y="5" width="59" height="15" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ESTOQUE]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1" y="5" width="81" height="15" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Bottom">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[REFERENCIA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="82" y="5" width="101" height="15" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Bottom">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[DESCRIÇÃO]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="19" splitType="Prevent">
+			<textField pattern="###0">
+				<reportElement x="235" y="4" width="59" height="15"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{ESTOQUE}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="183" y="4" width="52" height="15"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{CURVA}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="82" y="4" width="101" height="15"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRICAO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="1" y="4" width="81" height="15"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{PRODUTO}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

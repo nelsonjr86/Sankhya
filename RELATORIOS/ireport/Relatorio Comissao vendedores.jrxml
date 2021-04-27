@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="relacao_materiais" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="DTINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Inicial]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DTFIN" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Final]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT VENDEDOR,
+	SUM(TOTAL_VENDAS) TOTAL_VENDA,
+	SUM(DEVOLUCAO) DEVOLUCAO,
+	SUM(TOTAL_VENDAS)+SUM(DEVOLUCAO) RESULTADO,
+	COMVENDA,
+	((SUM(TOTAL_VENDAS)+SUM(DEVOLUCAO))*(COMVENDA/100)) AS 'COMISSAO',
+	CODVEND
+FROM (
+SELECT /*TOTAL VENDAS POR VENDEDOR*/
+    CAB.CODVEND,
+	VEN.APELIDO VENDEDOR,
+    SUM((ITE.VLRTOT-ITE.VLRDESC)*CASE WHEN 'S' = 'N' THEN VGF.INDITENS ELSE 1 END) TOTAL_VENDAS,
+	VEN.COMVENDA,
+	0 DEVOLUCAO
+FROM TGFCAB CAB
+INNER JOIN TGFITE ITE ON (ITE.NUNOTA=CAB.NUNOTA)
+INNER JOIN TGFPRO PRD ON (PRD.CODPROD=ITE.CODPROD)
+INNER JOIN TGFPAR PAR ON (PAR.CODPARC=CAB.CODPARC)
+INNER JOIN TGFVEN VEN ON (VEN.CODVEND=CAB.CODVEND)
+INNER JOIN TSIUSU USU ON (USU.CODUSU=SANKHYA.STP_GET_CODUSULOGADO())
+ LEFT JOIN VGFCAB VGF ON (CAB.NUNOTA=VGF.NUNOTA)
+WHERE CAB.DTNEG BETWEEN $P{DTINI} AND $P{DTFIN}
+AND CAB.CODTIPOPER IN (900,901,911,931,934,935,937,936,942,944,1042,1043,9000,9001,9002,1045,1046)
+AND CAB.TIPMOV='V'
+AND CAB.STATUSNOTA = 'L'
+/*AND CAB.CODVEND = ISNULL(:CODVEND,CAB.CODVEND)*/
+
+GROUP BY VEN.APELIDO, CAB.CODVEND,VEN.COMVENDA
+
+UNION ALL
+
+SELECT /*TOTAL VENDAS POR VENDEDOR*/
+    CAB.CODVEND,
+	VEN.APELIDO VENDEDOR,
+    0 TOTAL_VENDAS,
+	VEN.COMVENDA,
+	SUM((ITE.VLRTOT-ITE.VLRDESC)*CASE WHEN 'S' = 'N' THEN VGF.INDITENS ELSE 1 END)*-1 DEVOLUCAO
+FROM TGFITE ITE
+    INNER JOIN TGFCAB CAB ON (CAB.NUNOTA=ITE.NUNOTA)
+    INNER JOIN TSIEMP EMP ON (EMP.CODEMP=CAB.CODEMP)
+    INNER JOIN TGFPRO PRD ON (PRD.CODPROD=ITE.CODPROD)
+	INNER JOIN TGFVEN VEN ON (VEN.CODVEND=CAB.CODVEND)
+	INNER JOIN TSIUSU USU ON (USU.CODUSU=SANKHYA.STP_GET_CODUSULOGADO())
+     LEFT JOIN VGFCAB VGF ON CAB.NUNOTA = VGF.NUNOTA
+WHERE CAB.CODTIPOPER IN (1000,1001,1007,1009,1011,1012,1042,1043,1045,1046,792)
+	AND CAB.STATUSNOTA = 'L'
+	/*AND CAB.CODVEND = ISNULL(:CODVEND,CAB.CODVEND)*/
+    AND CAB.DTMOV BETWEEN $P{DTINI} AND $P{DTFIN}
+
+GROUP BY VEN.APELIDO, CAB.CODVEND,VEN.COMVENDA
+
+) SUB
+GROUP BY VENDEDOR, CODVEND,COMVENDA
+ORDER BY VENDEDOR
+          ]]>
+	</queryString>
+	<field name="VENDEDOR" class="java.lang.String"/>
+	<field name="TOTAL_VENDA" class="java.lang.Double"/>
+	<field name="DEVOLUCAO" class="java.lang.Double"/>
+	<field name="RESULTADO" class="java.lang.Double"/>
+	<field name="COMVENDA" class="java.lang.Double"/>
+	<field name="COMISSAO" class="java.lang.Double"/>
+	<field name="CODVEND" class="java.lang.Short"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<pageHeader>
+		<band height="49">
+			<staticText>
+				<reportElement x="119" y="2" width="334" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="13"/>
+				</textElement>
+				<text><![CDATA[Relatorio comissão]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="528" y="0" width="11" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="455" y="0" width="73" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Right" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Pág.:]]></text>
+			</staticText>
+			<textField evaluationTime="Report" pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="544" y="0" width="11" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="539" y="0" width="5" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[/]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="119" y="22" width="238" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="12" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="498" y="22" width="56" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$P{DTFIN}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="428" y="22" width="53" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$P{DTINI}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="481" y="22" width="17" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[A]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="377" y="22" width="51" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PERIODO]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="42" width="555" height="1"/>
+			</line>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="20">
+			<staticText>
+				<reportElement x="0" y="4" width="76" height="15" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[VENDEDOR]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="76" y="4" width="57" height="15" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Bottom">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[TOTAL_VENDA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="132" y="4" width="57" height="15" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Bottom">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[DEVOLUCAO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="188" y="4" width="57" height="15" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Bottom">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[RESULTADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="244" y="4" width="57" height="15" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Bottom">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[%]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="301" y="4" width="57" height="15" forecolor="#000000"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Bottom">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[COMISSÃO]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="17" splitType="Prevent">
+			<textField>
+				<reportElement x="0" y="1" width="76" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{VENDEDOR}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="76" y="1" width="57" height="15"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{TOTAL_VENDA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="132" y="1" width="57" height="15"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{DEVOLUCAO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="188" y="1" width="57" height="15"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{RESULTADO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0">
+				<reportElement x="244" y="1" width="57" height="15"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{COMVENDA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="300" y="1" width="57" height="15"/>
+				<box rightPadding="2"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$F{COMISSAO}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>
