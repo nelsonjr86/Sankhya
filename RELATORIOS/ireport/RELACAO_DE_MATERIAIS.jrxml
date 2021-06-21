@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="relacao_materiais" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
 	<property name="ireport.zoom" value="1.5"/>
-	<property name="ireport.x" value="64"/>
+	<property name="ireport.x" value="134"/>
 	<property name="ireport.y" value="0"/>
 	<parameter name="DTFIM" class="java.sql.Timestamp">
 		<parameterDescription><![CDATA[Dt. fim]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
 	</parameter>
 	<parameter name="CODEMP" class="java.lang.String">
 		<property name="nomeTabela" value="TSIEMP"/>
@@ -21,6 +22,9 @@ SELECT DISTINCT/*RELACAO DE MATERIAIS*/
        (SELECT LTRIM(RTRIM(NOMEFANTASIA)) FROM TSIEMP WHERE CODEMP = $P{CODEMP}) AS EMPRESA
      , SUBSTRING(PRO.REFERENCIA, 1, 4) AS GRUPO
        , SUBSTRING(PRO.REFERENCIA, 5, LEN(PRO.REFERENCIA))  AS CODIGO
+		/*DADOS DA EMPRESA*/
+		/*REPLACE(GEM.LOGODANFE,'Repo://','/home/mgeweb/modelos/') AS LOGO,*/
+		,CONCAT('/home/mgeweb/modelos/',GEM.LOGODANFE) AS 'LOGO'
        , PRO.REFERENCIA
        , PRO.DESCRPROD AS DESCRICAO
        , PRO.CODVOL
@@ -32,23 +36,8 @@ SELECT DISTINCT/*RELACAO DE MATERIAIS*/
        , sankhya.SNK_GET_CUSTO('ENTRADACOMICMS', PRO.CODPROD, ITE.CODEMP, 0, ' ', ITE.DTMOV, 'S', 'N', 'N') AS CUSTO
        , CASE WHEN $P{CODEMP} IN (1,6,8,9,11) THEN SANKHYA.SNK_PRECO(0,PRO.CODPROD)
 			  WHEN $P{CODEMP} IN (2,3,4,7,12) THEN SANKHYA.SNK_PRECO(1,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (22) THEN /*SANKHYA.SNK_PRECO(100,PRO.CODPROD)*/
-			  (SELECT E.VLRVENDA
-					        FROM TGFTAB M (NOLOCK)
-					           , TGFEXC E (NOLOCK)
-					        WHERE M.DTVIGOR = (
-			  SELECT max(M.dtvigor)
-					        FROM TGFTAB M (NOLOCK)
-					           , TGFEXC E (NOLOCK)
-					        WHERE M.DTVIGOR <= GETDATE()
-					                AND E.CODPROD = PRO.CODPROD
-					          AND E.NUTAB = M.NUTAB
-							  AND M.CODTAB = 100)
-							  AND E.CODPROD = PRO.CODPROD
-					          AND E.NUTAB = M.NUTAB
-							  AND M.CODTAB = 100)
 			  WHEN $P{CODEMP} IN (26) THEN SANKHYA.SNK_PRECO(200,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (27) THEN /*SANKHYA.SNK_PRECO(100,PRO.CODPROD)*/
+			  WHEN $P{CODEMP} IN (SELECT CODEMP FROM TSIEMP WHERE CODEMPMATRIZ =(SELECT CODEMPMATRIZ FROM TSIEMP WHERE CODEMP = $P{CODEMP}) AND CODEMP = $P{CODEMP} AND CODEMP NOT IN (1,2,3,4,5,6,7,8,9,11,12,26)) THEN /*SANKHYA.SNK_PRECO(100,PRO.CODPROD)*/
 			  (SELECT E.VLRVENDA
 					        FROM TGFTAB M (NOLOCK)
 					           , TGFEXC E (NOLOCK)
@@ -59,10 +48,10 @@ SELECT DISTINCT/*RELACAO DE MATERIAIS*/
 					        WHERE M.DTVIGOR <= GETDATE()
 					                AND E.CODPROD = PRO.CODPROD
 					          AND E.NUTAB = M.NUTAB
-							  AND M.CODTAB = 300)
+							  AND M.CODTAB = (SELECT CODTABCALC FROM TGFEMP WHERE CODEMP = $P{CODEMP}))
 							  AND E.CODPROD = PRO.CODPROD
 					          AND E.NUTAB = M.NUTAB
-							  AND M.CODTAB = 300)
+							  AND M.CODTAB = (SELECT CODTABCALC FROM TGFEMP WHERE CODEMP = $P{CODEMP}))
 			END
 		AS VLR_VENDA
        , ITE.CODPARCFORN AS FORNECEDOR_COD
@@ -77,263 +66,43 @@ SELECT DISTINCT/*RELACAO DE MATERIAIS*/
                                            AND CA.DTMOV <= $P{DTFIM}
                                            AND CA.CODEMP = $P{CODEMP})
              GROUP BY C.CODEMP, VLRUNIT, C.CODPARC, I.QTDNEG, I.CODPROD, I.CONTROLE
-                                                    )) AS ITE ON PRO.CODPROD = ITE.CODPROD
+                                                    )) AS ITE ON (PRO.CODPROD = ITE.CODPROD)
+		INNER JOIN TGFEMP GEM ON ($P{CODEMP} = GEM.CODEMP)
 WHERE (PRO.REFERENCIA LIKE $P{REFERENCIA}+'%'
     OR $P{REFERENCIA} IS NULL)
    AND (PRO.ATIVO = 'S' OR ISNULL(ITE.CODPARCFORN,0) > 0)
    AND PRO.USOPROD = 'R'
    AND PRO.ATIVO = 'S'
-   AND $P{CODEMP} = 22
-   AND PRO.AD_PROPAULISTA = 'S'
+   AND $P{CODEMP} = (SELECT CODEMP FROM TSIEMP WHERE CODEMPMATRIZ =(SELECT CODEMPMATRIZ FROM TSIEMP WHERE CODEMP = $P{CODEMP}) AND CODEMP = $P{CODEMP})
+   AND (CASE WHEN $P{CODEMP} IN (SELECT CODEMP FROM TSIEMP WHERE CODEMPMATRIZ =(SELECT CODEMPMATRIZ FROM TSIEMP WHERE CODEMP = 1)) THEN PRO.AD_PROREAL
+	 WHEN $P{CODEMP} IN (SELECT CODEMP FROM TSIEMP WHERE CODEMPMATRIZ =(SELECT CODEMPMATRIZ FROM TSIEMP WHERE CODEMP = 22)) THEN PRO.AD_PROPAULISTA
+	 WHEN $P{CODEMP} IN (SELECT CODEMP FROM TSIEMP WHERE CODEMPMATRIZ =(SELECT CODEMPMATRIZ FROM TSIEMP WHERE CODEMP = 26)) THEN PRO.AD_CODSERVIBUS
+	 WHEN $P{CODEMP} IN (SELECT CODEMP FROM TSIEMP WHERE CODEMPMATRIZ =(SELECT CODEMPMATRIZ FROM TSIEMP WHERE CODEMP = 10)) THEN PRO.AD_GLASS
+	 WHEN $P{CODEMP} IN (SELECT CODEMP FROM TSIEMP WHERE CODEMPMATRIZ =(SELECT CODEMPMATRIZ FROM TSIEMP WHERE CODEMP = 40)) THEN PRO.AD_movatto
+	 WHEN $P{CODEMP} IN (SELECT CODEMP FROM TSIEMP WHERE CODEMPMATRIZ =(SELECT CODEMPMATRIZ FROM TSIEMP WHERE CODEMP = 27)) THEN PRO.AD_PROITAIPU END )='S'
 
-
-UNION ALL
-
-SELECT DISTINCT/*RELACAO DE MATERIAIS*/
-       (SELECT LTRIM(RTRIM(NOMEFANTASIA)) FROM TSIEMP WHERE CODEMP = $P{CODEMP}) AS EMPRESA
-     , SUBSTRING(PRO.REFERENCIA, 1, 4) AS GRUPO
-       , SUBSTRING(PRO.REFERENCIA, 5, LEN(PRO.REFERENCIA))  AS CODIGO
-       , PRO.REFERENCIA
-       , PRO.DESCRPROD AS DESCRICAO
-       , PRO.CODVOL
-     , ISNULL((SELECT SUM(I.QTDNEG*I.ATUALESTOQUE)
-                         FROM TGFITE I INNER JOIN TGFCAB C ON (C.NUNOTA = I.NUNOTA)
-                        WHERE I.CODPROD = PRO.CODPROD AND I.CODEMP = ITE.CODEMP AND I.ATUALESTOQUE <> 0 AND I.QTDNEG <> 0 AND I.RESERVA = 'N' AND C.DTENTSAI <= $P{DTFIM}
-             ),0) AS QTDE_ESTOQUE
-       , ISNULL(PRO.ESTMIN,0) AS EST_MINIMO
-       , sankhya.SNK_GET_CUSTO('ENTRADACOMICMS', PRO.CODPROD, ITE.CODEMP, 0, ' ', ITE.DTMOV, 'S', 'N', 'N') AS CUSTO
-       , CASE WHEN $P{CODEMP} IN (1,6,8,9,11) THEN SANKHYA.SNK_PRECO(0,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (2,3,4,7,12) THEN SANKHYA.SNK_PRECO(1,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (22) THEN SANKHYA.SNK_PRECO(100,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (26) THEN SANKHYA.SNK_PRECO(200,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (27) THEN /*SANKHYA.SNK_PRECO(100,PRO.CODPROD)*/
-			  (SELECT E.VLRVENDA
-					        FROM TGFTAB M (NOLOCK)
-					           , TGFEXC E (NOLOCK)
-					        WHERE M.DTVIGOR = (
-			  SELECT max(M.dtvigor)
-					        FROM TGFTAB M (NOLOCK)
-					           , TGFEXC E (NOLOCK)
-					        WHERE M.DTVIGOR <= GETDATE()
-					                AND E.CODPROD = PRO.CODPROD
-					          AND E.NUTAB = M.NUTAB
-							  AND M.CODTAB = 300)
-							  AND E.CODPROD = PRO.CODPROD
-					          AND E.NUTAB = M.NUTAB
-							  AND M.CODTAB = 300)
-			END
-		AS VLR_VENDA
-       , ITE.CODPARCFORN AS FORNECEDOR_COD
-       , ITE.DTMOV AS DATA_ULT_COMPRA
-       , ISNULL(ITE.VLRUNIT,0) AS VLR_UNITARIO
-       , ISNULL(ITE.QTDNEG,0) AS QTDE_COMPRADA
-  FROM TGFPRO PRO LEFT JOIN
-       ((SELECT MAX(ISNULL(C.DTENTSAI,C.DTNEG)) AS DTMOV, C.CODEMP, VLRUNIT, C.CODPARC AS CODPARCFORN, I.QTDNEG, I.CODPROD, I.CONTROLE FROM TGFCAB C INNER JOIN TGFITE I ON (I.NUNOTA=C.NUNOTA)
-                    WHERE C.NUNOTA = (SELECT MAX(CA.NUNOTA) FROM TGFCAB CA INNER JOIN TGFITE IT ON (IT.NUNOTA=CA.NUNOTA)
-                                         WHERE IT.CODPROD = I.CODPROD
-                                           AND CA.TIPMOV = 'C'
-                                           AND CA.DTMOV <= $P{DTFIM}
-                                           AND CA.CODEMP = $P{CODEMP})
-             GROUP BY C.CODEMP, VLRUNIT, C.CODPARC, I.QTDNEG, I.CODPROD, I.CONTROLE
-                                                    )) AS ITE ON PRO.CODPROD = ITE.CODPROD
-WHERE (PRO.REFERENCIA LIKE $P{REFERENCIA}+'%'
-    OR $P{REFERENCIA} IS NULL)
-   AND (PRO.ATIVO = 'S' OR ISNULL(ITE.CODPARCFORN,0) > 0)
-   AND PRO.USOPROD = 'R'
-   AND PRO.ATIVO = 'S'
-   AND $P{CODEMP} IN (1,2,3,4,6,7,8,9,11,12)
-   AND PRO.AD_PROREAL = 'S'
-
-
-UNION ALL
-
-SELECT DISTINCT/*RELACAO DE MATERIAIS*/
-       (SELECT LTRIM(RTRIM(NOMEFANTASIA)) FROM TSIEMP WHERE CODEMP = $P{CODEMP}) AS EMPRESA
-     , SUBSTRING(PRO.REFERENCIA, 1, 4) AS GRUPO
-       , SUBSTRING(PRO.REFERENCIA, 5, LEN(PRO.REFERENCIA))  AS CODIGO
-       , PRO.REFERENCIA
-       , PRO.DESCRPROD AS DESCRICAO
-       , PRO.CODVOL
-     , ISNULL((SELECT SUM(I.QTDNEG*I.ATUALESTOQUE)
-                         FROM TGFITE I INNER JOIN TGFCAB C ON (C.NUNOTA = I.NUNOTA)
-                        WHERE I.CODPROD = PRO.CODPROD AND I.CODEMP = ITE.CODEMP AND I.ATUALESTOQUE <> 0 AND I.QTDNEG <> 0 AND I.RESERVA = 'N' AND C.DTENTSAI <= $P{DTFIM}
-             ),0) AS QTDE_ESTOQUE
-       , ISNULL(PRO.ESTMIN,0) AS EST_MINIMO
-       , sankhya.SNK_GET_CUSTO('ENTRADACOMICMS', PRO.CODPROD, ITE.CODEMP, 0, ' ', ITE.DTMOV, 'S', 'N', 'N') AS CUSTO
-       , CASE WHEN $P{CODEMP} IN (1,6,8,9,11) THEN SANKHYA.SNK_PRECO(0,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (2,3,4,7,12) THEN SANKHYA.SNK_PRECO(1,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (22) THEN SANKHYA.SNK_PRECO(100,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (26) THEN SANKHYA.SNK_PRECO(200,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (27) THEN /*SANKHYA.SNK_PRECO(100,PRO.CODPROD)*/
-			  (SELECT E.VLRVENDA
-					        FROM TGFTAB M (NOLOCK)
-					           , TGFEXC E (NOLOCK)
-					        WHERE M.DTVIGOR = (
-			  SELECT max(M.dtvigor)
-					        FROM TGFTAB M (NOLOCK)
-					           , TGFEXC E (NOLOCK)
-					        WHERE M.DTVIGOR <= GETDATE()
-					                AND E.CODPROD = PRO.CODPROD
-					          AND E.NUTAB = M.NUTAB
-							  AND M.CODTAB = 300)
-							  AND E.CODPROD = PRO.CODPROD
-					          AND E.NUTAB = M.NUTAB
-							  AND M.CODTAB = 300)
-			END
-		AS VLR_VENDA
-       , ITE.CODPARCFORN AS FORNECEDOR_COD
-       , ITE.DTMOV AS DATA_ULT_COMPRA
-       , ISNULL(ITE.VLRUNIT,0) AS VLR_UNITARIO
-       , ISNULL(ITE.QTDNEG,0) AS QTDE_COMPRADA
-  FROM TGFPRO PRO LEFT JOIN
-       ((SELECT MAX(ISNULL(C.DTENTSAI,C.DTNEG)) AS DTMOV, C.CODEMP, VLRUNIT, C.CODPARC AS CODPARCFORN, I.QTDNEG, I.CODPROD, I.CONTROLE FROM TGFCAB C INNER JOIN TGFITE I ON (I.NUNOTA=C.NUNOTA)
-                    WHERE C.NUNOTA = (SELECT MAX(CA.NUNOTA) FROM TGFCAB CA INNER JOIN TGFITE IT ON (IT.NUNOTA=CA.NUNOTA)
-                                         WHERE IT.CODPROD = I.CODPROD
-                                           AND CA.TIPMOV = 'C'
-                                           AND CA.DTMOV <= $P{DTFIM}
-                                           AND CA.CODEMP = $P{CODEMP})
-             GROUP BY C.CODEMP, VLRUNIT, C.CODPARC, I.QTDNEG, I.CODPROD, I.CONTROLE
-                                                    )) AS ITE ON PRO.CODPROD = ITE.CODPROD
-WHERE (PRO.REFERENCIA LIKE $P{REFERENCIA}+'%'
-    OR $P{REFERENCIA} IS NULL)
-   AND (PRO.ATIVO = 'S' OR ISNULL(ITE.CODPARCFORN,0) > 0)
-   AND PRO.USOPROD = 'R'
-   AND PRO.ATIVO = 'S'
-   AND $P{CODEMP} IN (26)
-   AND PRO.AD_CODSERVIBUS = 'S'
-
-
-UNION ALL
-
-SELECT DISTINCT/*RELACAO DE MATERIAIS*/
-       (SELECT LTRIM(RTRIM(NOMEFANTASIA)) FROM TSIEMP WHERE CODEMP = $P{CODEMP}) AS EMPRESA
-     , SUBSTRING(PRO.REFERENCIA, 1, 4) AS GRUPO
-       , SUBSTRING(PRO.REFERENCIA, 5, LEN(PRO.REFERENCIA))  AS CODIGO
-       , PRO.REFERENCIA
-       , PRO.DESCRPROD AS DESCRICAO
-       , PRO.CODVOL
-     , ISNULL((SELECT SUM(I.QTDNEG*I.ATUALESTOQUE)
-                         FROM TGFITE I INNER JOIN TGFCAB C ON (C.NUNOTA = I.NUNOTA)
-                        WHERE I.CODPROD = PRO.CODPROD AND I.CODEMP = ITE.CODEMP AND I.ATUALESTOQUE <> 0 AND I.QTDNEG <> 0 AND I.RESERVA = 'N' AND C.DTENTSAI <= $P{DTFIM}
-             ),0) AS QTDE_ESTOQUE
-       , ISNULL(PRO.ESTMIN,0) AS EST_MINIMO
-       , sankhya.SNK_GET_CUSTO('ENTRADACOMICMS', PRO.CODPROD, ITE.CODEMP, 0, ' ', ITE.DTMOV, 'S', 'N', 'N') AS CUSTO
-       , CASE WHEN $P{CODEMP} IN (1,6,8,9,11) THEN SANKHYA.SNK_PRECO(0,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (2,3,4,7,12) THEN SANKHYA.SNK_PRECO(1,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (22) THEN SANKHYA.SNK_PRECO(100,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (26) THEN SANKHYA.SNK_PRECO(200,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (27) THEN /*SANKHYA.SNK_PRECO(100,PRO.CODPROD)*/
-			  (SELECT E.VLRVENDA
-					        FROM TGFTAB M (NOLOCK)
-					           , TGFEXC E (NOLOCK)
-					        WHERE M.DTVIGOR = (
-			  SELECT max(M.dtvigor)
-					        FROM TGFTAB M (NOLOCK)
-					           , TGFEXC E (NOLOCK)
-					        WHERE M.DTVIGOR <= GETDATE()
-					                AND E.CODPROD = PRO.CODPROD
-					          AND E.NUTAB = M.NUTAB
-							  AND M.CODTAB = 300)
-							  AND E.CODPROD = PRO.CODPROD
-					          AND E.NUTAB = M.NUTAB
-							  AND M.CODTAB = 300)
-			END
-		AS VLR_VENDA
-       , ITE.CODPARCFORN AS FORNECEDOR_COD
-       , ITE.DTMOV AS DATA_ULT_COMPRA
-       , ISNULL(ITE.VLRUNIT,0) AS VLR_UNITARIO
-       , ISNULL(ITE.QTDNEG,0) AS QTDE_COMPRADA
-  FROM TGFPRO PRO LEFT JOIN
-       ((SELECT MAX(ISNULL(C.DTENTSAI,C.DTNEG)) AS DTMOV, C.CODEMP, VLRUNIT, C.CODPARC AS CODPARCFORN, I.QTDNEG, I.CODPROD, I.CONTROLE FROM TGFCAB C INNER JOIN TGFITE I ON (I.NUNOTA=C.NUNOTA)
-                    WHERE C.NUNOTA = (SELECT MAX(CA.NUNOTA) FROM TGFCAB CA INNER JOIN TGFITE IT ON (IT.NUNOTA=CA.NUNOTA)
-                                         WHERE IT.CODPROD = I.CODPROD
-                                           AND CA.TIPMOV = 'C'
-                                           AND CA.DTMOV <= $P{DTFIM}
-                                           AND CA.CODEMP = $P{CODEMP})
-             GROUP BY C.CODEMP, VLRUNIT, C.CODPARC, I.QTDNEG, I.CODPROD, I.CONTROLE
-                                                    )) AS ITE ON PRO.CODPROD = ITE.CODPROD
-WHERE (PRO.REFERENCIA LIKE $P{REFERENCIA}+'%'
-    OR $P{REFERENCIA} IS NULL)
-   AND (PRO.ATIVO = 'S' OR ISNULL(ITE.CODPARCFORN,0) > 0)
-   AND PRO.USOPROD = 'R'
-   AND PRO.ATIVO = 'S'
-   AND $P{CODEMP} IN (10,13)
-   AND PRO.AD_GLASS = 'S'
-
-UNION ALL
-
-SELECT DISTINCT/*RELACAO DE MATERIAIS*/
-       (SELECT LTRIM(RTRIM(NOMEFANTASIA)) FROM TSIEMP WHERE CODEMP = $P{CODEMP}) AS EMPRESA
-     , SUBSTRING(PRO.REFERENCIA, 1, 4) AS GRUPO
-       , SUBSTRING(PRO.REFERENCIA, 5, LEN(PRO.REFERENCIA))  AS CODIGO
-       , PRO.REFERENCIA
-       , PRO.DESCRPROD AS DESCRICAO
-       , PRO.CODVOL
-     , ISNULL((SELECT SUM(I.QTDNEG*I.ATUALESTOQUE)
-                         FROM TGFITE I INNER JOIN TGFCAB C ON (C.NUNOTA = I.NUNOTA)
-                        WHERE I.CODPROD = PRO.CODPROD AND I.CODEMP = ITE.CODEMP AND I.ATUALESTOQUE <> 0 AND I.QTDNEG <> 0 AND I.RESERVA = 'N' AND C.DTENTSAI <= $P{DTFIM}
-             ),0) AS QTDE_ESTOQUE
-       , ISNULL(PRO.ESTMIN,0) AS EST_MINIMO
-       , sankhya.SNK_GET_CUSTO('ENTRADACOMICMS', PRO.CODPROD, ITE.CODEMP, 0, ' ', ITE.DTMOV, 'S', 'N', 'N') AS CUSTO
-       , CASE WHEN $P{CODEMP} IN (1,6,8,9,11) THEN SANKHYA.SNK_PRECO(0,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (2,3,4,7,12) THEN SANKHYA.SNK_PRECO(1,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (22) THEN SANKHYA.SNK_PRECO(100,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (26) THEN SANKHYA.SNK_PRECO(200,PRO.CODPROD)
-			  WHEN $P{CODEMP} IN (27) THEN /*SANKHYA.SNK_PRECO(100,PRO.CODPROD)*/
-			  ISNULL((SELECT E.VLRVENDA
-					        FROM TGFTAB M (NOLOCK)
-					           , TGFEXC E (NOLOCK)
-					        WHERE M.DTVIGOR = (
-			  SELECT max(M.dtvigor)
-					        FROM TGFTAB M (NOLOCK)
-					           , TGFEXC E (NOLOCK)
-					        WHERE M.DTVIGOR <= GETDATE()
-					                AND E.CODPROD = PRO.CODPROD
-					          AND E.NUTAB = M.NUTAB
-							  AND M.CODTAB = 300)
-							  AND E.CODPROD = PRO.CODPROD
-					          AND E.NUTAB = M.NUTAB
-							  AND M.CODTAB = 300),0)
-			END
-		AS VLR_VENDA
-       , ITE.CODPARCFORN AS FORNECEDOR_COD
-       , ITE.DTMOV AS DATA_ULT_COMPRA
-       , ISNULL(ITE.VLRUNIT,0) AS VLR_UNITARIO
-       , ISNULL(ITE.QTDNEG,0) AS QTDE_COMPRADA
-  FROM TGFPRO PRO LEFT JOIN
-       ((SELECT MAX(ISNULL(C.DTENTSAI,C.DTNEG)) AS DTMOV, C.CODEMP, VLRUNIT, C.CODPARC AS CODPARCFORN, I.QTDNEG, I.CODPROD, I.CONTROLE FROM TGFCAB C INNER JOIN TGFITE I ON (I.NUNOTA=C.NUNOTA)
-                    WHERE C.NUNOTA = (SELECT MAX(CA.NUNOTA) FROM TGFCAB CA INNER JOIN TGFITE IT ON (IT.NUNOTA=CA.NUNOTA)
-                                         WHERE IT.CODPROD = I.CODPROD
-                                           AND CA.TIPMOV = 'C'
-                                           AND CA.DTMOV <= $P{DTFIM}
-                                           AND CA.CODEMP = $P{CODEMP})
-             GROUP BY C.CODEMP, VLRUNIT, C.CODPARC, I.QTDNEG, I.CODPROD, I.CONTROLE
-                                                    )) AS ITE ON PRO.CODPROD = ITE.CODPROD
-WHERE (PRO.REFERENCIA LIKE $P{REFERENCIA}+'%'
-    OR $P{REFERENCIA} IS NULL)
-   AND (PRO.ATIVO = 'S' OR ISNULL(ITE.CODPARCFORN,0) > 0)
-   AND PRO.USOPROD = 'R'
-   AND PRO.ATIVO = 'S'
-   AND $P{CODEMP} IN (27)
-   AND PRO.AD_PROITAIPU = 'S'
        )
 
 SELECT EMPRESA
+	 , LOGO
      , GRUPO
        , CODIGO
        , REFERENCIA
        , DESCRICAO
        , CODVOL
        , QTDE_ESTOQUE
+	   , (QTDE_ESTOQUE*CUSTO) AS 'QTD_CUSTO'
        , EST_MINIMO
        , CUSTO
        , VLR_VENDA
+	   , (QTDE_ESTOQUE*VLR_VENDA) AS 'QTD_VENDA'
        , FORNECEDOR_COD
        , MAX(DATA_ULT_COMPRA) AS DATA_ULT_COMPRA
        , MAX(VLR_UNITARIO) AS VLR_UNITARIO
      , SUM(QTDE_COMPRADA) AS QTDE_COMPRADA
   FROM X
 GROUP BY EMPRESA
+	 , LOGO
      , GRUPO
        , CODIGO
        , REFERENCIA
@@ -351,15 +120,18 @@ GROUP BY EMPRESA
 	REFERENCIA]]>
 	</queryString>
 	<field name="EMPRESA" class="java.lang.String"/>
+	<field name="LOGO" class="java.lang.String"/>
 	<field name="GRUPO" class="java.lang.String"/>
 	<field name="CODIGO" class="java.lang.String"/>
 	<field name="REFERENCIA" class="java.lang.String"/>
 	<field name="DESCRICAO" class="java.lang.String"/>
 	<field name="CODVOL" class="java.lang.String"/>
 	<field name="QTDE_ESTOQUE" class="java.lang.Double"/>
+	<field name="QTD_CUSTO" class="java.lang.Double"/>
 	<field name="EST_MINIMO" class="java.lang.Double"/>
 	<field name="CUSTO" class="java.lang.Double"/>
 	<field name="VLR_VENDA" class="java.lang.Double"/>
+	<field name="QTD_VENDA" class="java.lang.Double"/>
 	<field name="FORNECEDOR_COD" class="java.lang.Integer"/>
 	<field name="DATA_ULT_COMPRA" class="java.sql.Timestamp"/>
 	<field name="VLR_UNITARIO" class="java.lang.Double"/>
@@ -368,10 +140,10 @@ GROUP BY EMPRESA
 		<variableExpression><![CDATA[$F{QTDE_ESTOQUE}]]></variableExpression>
 	</variable>
 	<variable name="TOTAL_CUSTO" class="java.lang.Double" calculation="Sum">
-		<variableExpression><![CDATA[$F{CUSTO}]]></variableExpression>
+		<variableExpression><![CDATA[$F{QTD_CUSTO}]]></variableExpression>
 	</variable>
 	<variable name="TOTAL_VLR_VENDA" class="java.lang.Double" calculation="Sum">
-		<variableExpression><![CDATA[$F{VLR_VENDA}]]></variableExpression>
+		<variableExpression><![CDATA[$F{QTD_VENDA}]]></variableExpression>
 	</variable>
 	<variable name="CUSTO_1" class="java.lang.Double" resetType="Group" resetGroup="EMPRESA" calculation="Sum">
 		<variableExpression><![CDATA[$F{CUSTO}]]></variableExpression>
@@ -415,7 +187,7 @@ GROUP BY EMPRESA
 				<text><![CDATA[Gerado em:]]></text>
 			</staticText>
 			<textField evaluationTime="Report" pattern="" isBlankWhenNull="false">
-				<reportElement mode="Transparent" x="538" y="0" width="15" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<reportElement mode="Transparent" x="529" y="0" width="24" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
 				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
 					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 				</textElement>
@@ -429,21 +201,21 @@ GROUP BY EMPRESA
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{EMPRESA}]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement mode="Transparent" x="453" y="0" width="63" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<reportElement mode="Transparent" x="441" y="0" width="63" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
 				<textElement textAlignment="Right" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
 					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 				</textElement>
 				<text><![CDATA[Pág.:]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Transparent" x="533" y="0" width="5" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<reportElement mode="Transparent" x="524" y="0" width="5" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
 				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
 					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 				</textElement>
 				<text><![CDATA[/]]></text>
 			</staticText>
 			<textField>
-				<reportElement x="515" y="0" width="15" height="12"/>
+				<reportElement x="504" y="0" width="20" height="12"/>
 				<textElement textAlignment="Center">
 					<font size="8"/>
 				</textElement>
@@ -451,7 +223,7 @@ GROUP BY EMPRESA
 			</textField>
 			<image onErrorType="Icon">
 				<reportElement key="image-1" x="2" y="2" width="77" height="34"/>
-				<imageExpression class="java.lang.String"><![CDATA["https://sistema.realonibus.com.br//mge/image/logocliente/logo.png"]]></imageExpression>
+				<imageExpression class="java.lang.String"><![CDATA[$F{LOGO}]]></imageExpression>
 			</image>
 			<line>
 				<reportElement x="0" y="39" width="555" height="1"/>
